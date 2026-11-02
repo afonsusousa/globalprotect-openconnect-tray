@@ -92,6 +92,39 @@ fn quit(app: AppHandle) {
   app.exit(0)
 }
 
+/// True when a StatusNotifier host (the tray) is running. Stock GNOME has none
+/// unless the AppIndicator extension is enabled, so a hidden window would be lost.
+fn tray_available() -> bool {
+  use dbus::blocking::Connection;
+  let Ok(conn) = Connection::new_session() else {
+    return false;
+  };
+  let proxy = conn.with_proxy(
+    "org.freedesktop.DBus",
+    "/org/freedesktop/DBus",
+    std::time::Duration::from_millis(500),
+  );
+  proxy
+    .method_call("org.freedesktop.DBus", "NameHasOwner", ("org.kde.StatusNotifierWatcher",))
+    .map(|(owned,): (bool,)| owned)
+    .unwrap_or(false)
+}
+
+/// Put the window away without quitting (which would disconnect the VPN):
+/// into the tray when there is one, otherwise minimized to the dock/taskbar.
+fn put_away(window: &tauri::WebviewWindow) {
+  if tray_available() {
+    let _ = window.hide();
+  } else {
+    let _ = window.minimize();
+  }
+}
+
+#[tauri::command]
+fn close_window(window: tauri::WebviewWindow) {
+  put_away(&window);
+}
+
 fn show_window(app: &AppHandle) {
   if let Some(window) = app.get_webview_window("main") {
     let _ = window.show();
@@ -239,15 +272,17 @@ fn main() {
       tauri::async_runtime::spawn(async move { service.start_service() });
 
       if start_minimized && let Some(window) = app.get_webview_window("main") {
-        let _ = window.hide();
+        put_away(&window);
       }
       Ok(())
     })
     .on_window_event(|window, event| {
-      // Closing the window keeps the app in the tray.
+      // Closing keeps the app (and the VPN) running; see `put_away`.
       if let WindowEvent::CloseRequested { api, .. } = event {
         api.prevent_close();
-        let _ = window.hide();
+        if let Some(window) = window.app_handle().get_webview_window(window.label()) {
+          put_away(&window);
+        }
       }
     })
     .invoke_handler(tauri::generate_handler![
@@ -259,6 +294,7 @@ fn main() {
       get_status,
       get_logs,
       clear_logs,
+      close_window,
       has_saved_sign_in,
       forget_sign_in,
       quit

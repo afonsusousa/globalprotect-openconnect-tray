@@ -6,6 +6,26 @@
 > It handles your VPN sign-in credentials and drives a privileged (root) service.
 > It has not been audited. **Use it at your own risk. There is no warranty of any kind.** See [LICENSE](./LICENSE).
 
+## Install (openSUSE Tumbleweed)
+
+The [`home:afonsusousa`](https://build.opensuse.org/project/show/home:afonsusousa) repository has everything you need: gptray and the matching `globalprotect-openconnect`, the upstream packages unchanged.
+
+Use one of these:
+
+- **1-Click Install:** go to [software.opensuse.org/download](https://software.opensuse.org/download.html?project=home%3Aafonsusousa&package=gptray), choose openSUSE Tumbleweed, then click *1 Click Install*.
+- **opi:** `opi gptray`
+- **zypper:**
+  ```bash
+  sudo zypper ar -f https://download.opensuse.org/repositories/home:/afonsusousa/openSUSE_Tumbleweed/ home_afonsusousa
+  sudo zypper --gpg-auto-import-keys in gptray
+  ```
+
+Then start **GlobalProtect (gptray)** from your app menu.
+
+**GNOME users:** install the [AppIndicator and KStatusNotifierItem Support](https://extensions.gnome.org/extension/615/appindicator-support/) extension to get the tray icon. Without it, gptray still works: closing the window minimizes it instead of hiding it to the tray, so you can always get back to it.
+
+If you already have upstream's `home:yuezk` repository, keep it or remove it. Both carry the same `globalprotect-openconnect`.
+
 A small, free (GPL-3.0) tray app and connection window for GlobalProtect-openconnect on Linux.
 It's an independent front end. It doesn't replace or unlock the proprietary `gpgui`. It drives the open-source `gpservice` and `gpclient`.
 
@@ -32,7 +52,7 @@ gptray is built against this repository's `gpapi`, and the service only accepts 
 ## Requirements
 
 - GlobalProtect-openconnect installed: `gpservice`, `gpclient`, `gpauth`, and its polkit policy.
-- WebKitGTK 4.1 and a tray implementation. On GNOME, install the *AppIndicator and KStatusNotifierItem Support* extension.
+- WebKitGTK 4.1 and a tray implementation. On GNOME, install the *AppIndicator and KStatusNotifierItem Support* extension for the tray icon. Without it, closing the window minimizes instead of hiding.
 
 ## Building
 
@@ -72,7 +92,7 @@ Set up the OBS project to build on top of upstream's, so `globalprotect-openconn
 Prefer: libayatana-appindicator3-1
 ```
 
-Use `osc meta prj` and `osc meta prjconf` to set them. The `Prefer` line resolves upstream's "appindicator or ayatana" dependency for OBS. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. It requires exactly the matching `globalprotect-openconnect` version, because `gpservice` rejects clients built for another release. Users also need that package, for example from its own OBS project.
+Use `osc meta prj` and `osc meta prjconf` to set them. The project also *aggregates* upstream's built package with `osc aggregatepac home:yuezk globalprotect-openconnect home:afonsusousa`, so users only need this one repository. The `Prefer` line resolves upstream's "appindicator or ayatana" dependency for OBS. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. It requires exactly the matching `globalprotect-openconnect` version, because `gpservice` rejects clients built for another release. Users also need that package, for example from its own OBS project.
 
 Before each release, bump `version` in `src-tauri/Cargo.toml` and add an entry to `packaging/obs/gptray.changes`, for example with `osc vc`.
 

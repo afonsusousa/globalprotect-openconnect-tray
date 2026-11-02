@@ -1,5 +1,4 @@
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { api, emptyProfile, LogLine, Profile, Status } from "./api";
 import { Back, Chevron, Close, Dots, Globe, ShieldAlert, ShieldBusy, ShieldCheck, Terminal } from "./icons";
@@ -161,7 +160,7 @@ export default function App() {
           <span className="icon-btn placeholder" />
         )}
         <h1 data-tauri-drag-region>{view === "settings" ? "Settings" : view === "logs" ? "Logs" : "GlobalProtect"}</h1>
-        <button className="icon-btn round" onClick={() => getCurrentWindow().hide()} aria-label="Close">
+        <button className="icon-btn round" onClick={() => api.closeWindow()} aria-label="Close">
           <Close />
         </button>
       </header>

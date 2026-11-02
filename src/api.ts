@@ -53,6 +53,7 @@ export const api = {
   getLogs: () => invoke<LogLine[]>("get_logs"),
   clearLogs: () => invoke<void>("clear_logs"),
   quit: () => invoke<void>("quit"),
+  closeWindow: () => invoke<void>("close_window"),
   hasSavedSignIn: (id: string) => invoke<boolean>("has_saved_sign_in", { id }),
   forgetSignIn: (id: string) => invoke<void>("forget_sign_in", { id }),
 };

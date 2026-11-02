@@ -26,6 +26,8 @@ tokio-tungstenite = "0.30"
 futures-util = "0.3"
 uuid = { version = "1", features = ["v4"] }
 zeroize = "1"
+# Already in the tree via tao; used to detect whether a tray host is running.
+dbus = "0.9"
 
 [features]
 default = ["tauri/custom-protocol"]

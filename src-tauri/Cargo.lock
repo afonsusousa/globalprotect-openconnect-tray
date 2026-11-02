@@ -1651,6 +1651,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common",
+ "dbus",
  "env_logger",
  "futures-util",
  "gpapi",
