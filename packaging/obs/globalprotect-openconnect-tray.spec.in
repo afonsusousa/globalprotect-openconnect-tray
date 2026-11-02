@@ -15,13 +15,11 @@ Summary:        GlobalProtect VPN client with a tray GUI (VIBE CODED, use at you
 License:        GPL-3.0-only AND MIT AND LGPL-2.1-or-later
 Group:          Productivity/Networking/Other
 URL:            https://github.com/afonsusousa/GlobalProtect-openconnect
-# The tray, with its prebuilt frontend and cargo vendor config.
+# One tarball (shared with the Debian build), made by packaging/obs/obs-release.sh:
+#   the tray with its prebuilt frontend, vendor/ (its crates, for the offline build)
+#   and upstream/globalprotect-openconnect-<gp>.tar.gz (upstream at the pinned tag,
+#   from upstream's own `make tarball OFFLINE=1`, incl. submodules and its crates).
 Source0:        %{name}-%{version}.tar.gz
-# Crates for the tray (OBS builds offline).
-Source1:        vendor.tar.xz
-# Upstream GlobalProtect-openconnect at the pinned tag, from `make tarball OFFLINE=1`
-# (sources, OpenConnect/libxml2 submodules and vendored crates).
-Source2:        globalprotect-openconnect-%{gp_version}.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -84,10 +82,9 @@ prompt, sign-in (built-in SAML window, system browser or password) runs
 unprivileged through gpclient, and the sign-in is remembered per connection.
 
 %prep
-# The tray: vendor/ lands next to src-tauri/, whose .cargo/config.toml points there.
-%setup -q -a1
+%setup -q
 # Upstream, unpacked into ./globalprotect-openconnect-%{gp_version}/
-%setup -q -T -D -a2
+tar -xzf upstream/globalprotect-openconnect-%{gp_version}.tar.gz
 
 %build
 # The injected RUSTFLAGS could fail the build

@@ -1,0 +1,54 @@
+Source: globalprotect-openconnect-tray
+Section: net
+Priority: optional
+Maintainer: afonsusousa <afonso.rocha@outlook.com>
+Build-Depends: debhelper-compat (= 13),
+  autoconf,
+  automake,
+  autopoint,
+  libtool,
+  patch,
+  pkg-config,
+  make (>= 4),
+  gettext,
+  file,
+  perl,
+  libssl-dev,
+  libxml2-dev,
+  zlib1g-dev,
+  liblz4-dev,
+  libgnutls28-dev,
+  libp11-kit-dev,
+  nettle-dev,
+  libgmp-dev,
+  libgtk-3-dev,
+  libwebkit2gtk-4.1-dev,
+  libsoup-3.0-dev,
+  libdbus-1-dev,
+  librsvg2-dev,
+  desktop-file-utils,
+  cargo-@RUST_VERSION@,
+  rustc-@RUST_VERSION@
+Standards-Version: 4.6.2
+Homepage: https://github.com/afonsusousa/GlobalProtect-openconnect
+
+Package: globalprotect-openconnect-tray
+Architecture: amd64 arm64
+Depends: ${misc:Depends},
+  ${shlibs:Depends},
+  pkexec | policykit-1,
+  xdg-utils,
+  libayatana-appindicator3-1
+Conflicts: globalprotect-openconnect
+Replaces: globalprotect-openconnect
+Provides: globalprotect-openconnect-cli (= @GP_VERSION@)
+Description: GlobalProtect VPN client with a tray GUI (VIBE CODED, use at your own risk)
+ *** WARNING: THIS IS VIBE CODED ***
+ The tray app was written almost entirely by an AI coding assistant (Claude)
+ with minimal human review. It handles VPN sign-in credentials and drives a
+ privileged (root) service. It has not been audited. Use it at your own risk;
+ there is no warranty of any kind.
+ .
+ The open-source components of GlobalProtect-openconnect @GP_VERSION@
+ (gpclient, gpservice, gpauth), built from source without the proprietary GUI,
+ plus a free tray icon and compact connection window that drives them.

@@ -24,7 +24,24 @@ Use one of these:
 
 Then start **GlobalProtect Tray** from your app menu.
 
-- **Replaces upstream's package:** this package ships the same `gpclient`, `gpservice` and `gpauth` files as upstream's `globalprotect-openconnect` package, so the two conflict. If you have upstream's installed, zypper offers to replace it.
+## Install (Ubuntu 24.04 LTS, 26.04 LTS, 26.10)
+
+The same package is built for Ubuntu on amd64 and arm64. Set `UBUNTU` to your release (`24.04`, `26.04` or `26.10`):
+
+```bash
+UBUNTU=24.04
+echo "deb http://download.opensuse.org/repositories/home:/afonsusousa/xUbuntu_$UBUNTU/ /" \
+  | sudo tee /etc/apt/sources.list.d/home_afonsusousa.list
+curl -fsSL "https://download.opensuse.org/repositories/home:afonsusousa/xUbuntu_$UBUNTU/Release.key" \
+  | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_afonsusousa.gpg > /dev/null
+sudo apt update && sudo apt install globalprotect-openconnect-tray
+```
+
+The [1-Click page](https://software.opensuse.org/download.html?project=home%3Aafonsusousa&package=globalprotect-openconnect-tray) shows the same commands for each release. Ubuntu's desktop has the AppIndicator extension enabled by default, so the tray icon works out of the box. Other Ubuntu releases aren't built: 25.10 and older interim releases don't ship the Rust 1.91 toolchain this release needs.
+
+### Notes for both distributions
+
+- **Replaces upstream's package:** this package ships the same `gpclient`, `gpservice` and `gpauth` files as upstream's `globalprotect-openconnect` package (from `home:yuezk` or the upstream PPA), so the two conflict. zypper offers to replace it; apt replaces it.
 - **GNOME:** install the [AppIndicator and KStatusNotifierItem Support](https://extensions.gnome.org/extension/615/appindicator-support/) extension to get the tray icon. Without it the app still works: closing the window minimizes it instead of hiding it to the tray, so you can always get back to it.
 
 ## What it does
@@ -83,23 +100,28 @@ sudo zypper in osc                     # once; then run `osc` once to set up cre
 packaging/obs/obs-release.sh --upload home:<your-obs-user>
 ```
 
-The script produces five files in `.build/obs/` and, with `--upload`, commits them to the `globalprotect-openconnect-tray` package in that OBS project:
+The script produces these files in `.build/obs/` and, with `--upload`, commits them to the `globalprotect-openconnect-tray` package in that OBS project:
 
 | File | Contents |
 |---|---|
-| `globalprotect-openconnect-tray-<version>.tar.gz` | This repository with the built frontend (`dist/`) and a cargo config pointing at the vendored crates |
-| `vendor.tar.xz` | The tray's crates, vendored because OBS builds offline |
-| `globalprotect-openconnect-<gp>.tar.gz` | Upstream at the pinned tag, cloned with submodules and packed by upstream's own `make tarball OFFLINE=1` |
-| `globalprotect-openconnect-tray.spec` | Filled in from `packaging/obs/globalprotect-openconnect-tray.spec.in` |
-| `globalprotect-openconnect-tray.changes` | The changelog |
+| `globalprotect-openconnect-tray-<version>.tar.gz` | The one source tarball for every build: this repository with the built frontend (`dist/`); `vendor/` with the tray's crates, because OBS builds offline; and `upstream/globalprotect-openconnect-<gp>.tar.gz`, upstream at the pinned tag, cloned with submodules and packed by upstream's own `make tarball OFFLINE=1` |
+| `globalprotect-openconnect-tray.spec`, `.changes` | RPM, from `packaging/obs/globalprotect-openconnect-tray.spec.in` |
+| `globalprotect-openconnect-tray.dsc`, `debian.*` | Debian/Ubuntu, from `packaging/obs/debian/`. OBS turns `debian.<name>` into `debian/<name>`. The Debian changelog is generated from the newest `.changes` entry |
 
-The spec builds upstream with `make build OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0`, so the proprietary GUI is never downloaded, then builds the tray. It installs everything upstream's own package installs except the GUI's desktop entry.
+Both builds compile upstream with `make build OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0`, so the proprietary GUI is never downloaded, then build the tray. They install everything upstream's own package installs except the GUI's desktop entry. On Ubuntu, the build uses the versioned `rustc-<X.Y>`/`cargo-<X.Y>` packages that match upstream's `RUST_VERSION`.
 
-The OBS project builds on plain Tumbleweed. Its repository and project config:
+The OBS project builds on plain Tumbleweed and Ubuntu. Its repositories and project config:
 
 ```xml
 <repository name="openSUSE_Tumbleweed">
   <path project="openSUSE:Factory" repository="snapshot"/>
+  <arch>x86_64</arch>
+  <arch>aarch64</arch>
+</repository>
+<!-- the same for 26.04 and 26.10 -->
+<repository name="xUbuntu_24.04">
+  <path project="Ubuntu:24.04" repository="universe-update"/>
+  <path project="Ubuntu:24.04" repository="update"/>
   <arch>x86_64</arch>
   <arch>aarch64</arch>
 </repository>
@@ -108,7 +130,7 @@ The OBS project builds on plain Tumbleweed. Its repository and project config:
 Prefer: libayatana-appindicator3-1
 ```
 
-Set them with `osc meta prj` and `osc meta prjconf`. The package needs Rust ≥ 1.91 and WebKitGTK 4.1.
+Set them with `osc meta prj` and `osc meta prjconf`. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. Only add an Ubuntu release if it ships `rustc-<upstream RUST_VERSION>`.
 
 Before each release, bump `version` in `src-tauri/Cargo.toml` and add an entry to `packaging/obs/globalprotect-openconnect-tray.changes`, for example with `osc vc`.
 

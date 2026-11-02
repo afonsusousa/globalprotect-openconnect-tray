@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+# Builds upstream GlobalProtect-openconnect (no proprietary GUI) and the tray,
+# from the combined source tarball made by packaging/obs/obs-release.sh.
+
+export DH_VERBOSE = 1
+# Ubuntu's versioned Rust toolchain (cargo-@RUST_VERSION@ / rustc-@RUST_VERSION@)
+export PATH := /usr/lib/rust-@RUST_VERSION@/bin:$(PATH)
+# The injected RUSTFLAGS could fail the build
+unexport RUSTFLAGS
+
+GP_VERSION := @GP_VERSION@
+UPSTREAM := globalprotect-openconnect-$(GP_VERSION)
+DEST := $(CURDIR)/debian/globalprotect-openconnect-tray
+UPSTREAM_FLAGS := OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	rm -rf $(UPSTREAM)
+	tar -xzf upstream/$(UPSTREAM).tar.gz
+
+override_dh_auto_build:
+	cargo --version
+	$(MAKE) -C $(UPSTREAM) build $(UPSTREAM_FLAGS)
+	cd src-tauri && cargo build --release --offline --locked
+
+override_dh_auto_install:
+	$(MAKE) -C $(UPSTREAM) install DESTDIR=$(DEST) PREFIX=/usr $(UPSTREAM_FLAGS)
+	# Upstream's desktop entry launches the proprietary GUI, which isn't included.
+	rm -f $(DEST)/usr/share/applications/gpgui.desktop
+	install -Dm755 src-tauri/target/release/globalprotect-openconnect-tray $(DEST)/usr/bin/globalprotect-openconnect-tray
+	install -Dm644 packaging/globalprotect-openconnect-tray.desktop $(DEST)/usr/share/applications/globalprotect-openconnect-tray.desktop
+	install -Dm644 src-tauri/icons/32x32.png $(DEST)/usr/share/icons/hicolor/32x32/apps/globalprotect-openconnect-tray.png
+	install -Dm644 src-tauri/icons/128x128.png $(DEST)/usr/share/icons/hicolor/128x128/apps/globalprotect-openconnect-tray.png
+	install -Dm644 src-tauri/icons/icon.png $(DEST)/usr/share/icons/hicolor/256x256/apps/globalprotect-openconnect-tray.png
+	desktop-file-validate $(DEST)/usr/share/applications/globalprotect-openconnect-tray.desktop
+
+override_dh_auto_test:
+
+override_dh_auto_clean:
+	rm -rf $(UPSTREAM) src-tauri/target
+
+# Rust binaries are already stripped by the release profile.
+override_dh_dwz:
