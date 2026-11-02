@@ -44,6 +44,19 @@ This crate has its own Cargo workspace, so it builds separately from the main re
 
 Run `gptray --minimized` to start in the tray, for example from autostart.
 
+## Releasing on the openSUSE Build Service
+
+```bash
+sudo zypper in osc                     # once; then run `osc` once to set up credentials
+apps/gptray/packaging/obs/obs-release.sh --upload home:<your-obs-user>
+```
+
+The script builds the frontend, then packs a trimmed source tarball with `gptray`, `crates/gpapi`, `crates/common`, the built `dist/` and a minimal root `Cargo.toml`. It vendors every crate into `vendor.tar.xz`, because OBS builds offline, and fills in `gptray.spec` from `packaging/obs/gptray.spec.in`. With `--upload` it also creates or updates the `gptray` package in that OBS project and commits. Leave out `--upload` to only produce the files in `apps/gptray/.build/obs/`.
+
+Enable the repositories you want, such as openSUSE Tumbleweed, in the project's settings on build.opensuse.org. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. It requires exactly the matching `globalprotect-openconnect` version, because `gpservice` rejects clients built for another release. Users also need that package, for example from its own OBS project.
+
+Before each release, bump `version` in `src-tauri/Cargo.toml` and add an entry to `packaging/obs/gptray.changes`, for example with `osc vc`.
+
 ## License
 
 GPL-3.0, the same as `gpclient`. See [LICENSE](./LICENSE).

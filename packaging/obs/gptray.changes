@@ -1,0 +1,8 @@
+-------------------------------------------------------------------
+Mon Nov  2 21:30:00 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
+
+- Initial package of gptray 0.1.0:
+  * Tray GUI for GlobalProtect-openconnect built on gpservice and gpclient
+  * No password prompts: gpservice starts through the packaged polkit policy
+  * Built-in SAML window, system browser or password sign-in
+  * Remembered sign-in per connection, with "Delete credentials"

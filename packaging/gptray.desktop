@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=GlobalProtect (gptray)
+GenericName=VPN Client
+Comment=Connect to GlobalProtect VPNs
+Exec=gptray
+Icon=gptray
+Terminal=false
+Categories=Network;
+Keywords=VPN;GlobalProtect;OpenConnect;
+StartupNotify=false
