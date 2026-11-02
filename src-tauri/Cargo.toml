@@ -6,7 +6,7 @@ rust-version = "1.91"
 license = "GPL-3.0"
 description = "A free tray GUI for GlobalProtect-openconnect. VIBE CODED: AI-written with minimal human review; use at your own risk."
 
-# Standalone on purpose: keeps this app out of the main workspace and its lockfile.
+# Standalone: builds on its own, outside the GlobalProtect-openconnect workspace.
 [workspace]
 
 [build-dependencies]
@@ -20,8 +20,11 @@ tokio = { version = "1", features = ["process", "io-util", "time", "macros", "rt
 anyhow = "1"
 log = "0.4"
 env_logger = "0.11"
-gpapi = { path = "../../../crates/gpapi" }
-common = { path = "../../../crates/common" }
+# The gpservice protocol client. Pin both to the upstream release that is installed:
+# gpservice only accepts clients built for its exact version. To target a new release,
+# change both tags (build.rs and the OBS spec read the version from here).
+gpapi = { git = "https://github.com/yuezk/GlobalProtect-openconnect", tag = "v3.2.0" }
+common = { git = "https://github.com/yuezk/GlobalProtect-openconnect", tag = "v3.2.0" }
 tokio-tungstenite = "0.30"
 futures-util = "0.3"
 uuid = { version = "1", features = ["v4"] }

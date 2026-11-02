@@ -47,7 +47,7 @@ gptray uses the same privileged backend as the official GUI:
 
 When you quit gptray, the service's control pipe closes, so the service disconnects the VPN and exits. That's the same lifecycle as the official GUI. Closing the window only hides it to the tray.
 
-gptray is built against this repository's `gpapi`, and the service only accepts clients built for its exact release. Rebuild gptray from the tag that matches your installed `gpservice`.
+gptray is built against `gpapi` from a pinned upstream release tag, and the service only accepts clients built for its exact release. Keep that tag in step with your installed `gpservice`; see *Building*.
 
 ## Requirements
 
@@ -57,7 +57,7 @@ gptray is built against this repository's `gpapi`, and the service only accepts 
 ## Building
 
 ```bash
-cd apps/gptray
+cd gptray   # or apps/gptray in the GlobalProtect-openconnect fork
 npm install
 npm run tauri build      # binary: src-tauri/target/release/gptray
 npm run tauri dev        # development
@@ -66,7 +66,14 @@ cd src-tauri && cargo test
 
 Build dependencies: openSUSE `webkitgtk3-devel dbus-1-devel libopenssl-devel librsvg-devel`; Debian/Ubuntu `libwebkit2gtk-4.1-dev libdbus-1-dev libssl-dev librsvg2-dev build-essential`.
 
-This crate has its own Cargo workspace, so it builds separately from the main repository workspace.
+**This folder is standalone.** Copy it anywhere, even outside this repository, and it builds. The `gpservice` protocol client (`gpapi` and `common`) is a git dependency pinned to an upstream release tag in `src-tauri/Cargo.toml`:
+
+```toml
+gpapi  = { git = "https://github.com/yuezk/GlobalProtect-openconnect", tag = "v3.2.0" }
+common = { git = "https://github.com/yuezk/GlobalProtect-openconnect", tag = "v3.2.0" }
+```
+
+That tag must match the installed `globalprotect-openconnect`, because `gpservice` rejects clients built for another release. `build.rs` and the OBS spec read the version from it. To target a new upstream release, change both tags, run `cargo update -p gpapi -p common`, rebuild, and fix anything the new API changed.
 
 Run `gptray --minimized` to start in the tray, for example from autostart.
 
@@ -74,10 +81,10 @@ Run `gptray --minimized` to start in the tray, for example from autostart.
 
 ```bash
 sudo zypper in osc                     # once; then run `osc` once to set up credentials
-apps/gptray/packaging/obs/obs-release.sh --upload home:<your-obs-user>
+packaging/obs/obs-release.sh --upload home:<your-obs-user>
 ```
 
-The script builds the frontend, then packs a trimmed source tarball with `gptray`, `crates/gpapi`, `crates/common`, the built `dist/` and a minimal root `Cargo.toml`. It vendors every crate into `vendor.tar.xz`, because OBS builds offline, and fills in `gptray.spec` from `packaging/obs/gptray.spec.in`. With `--upload` it also creates or updates the `gptray` package in that OBS project and commits. Leave out `--upload` to only produce the files in `apps/gptray/.build/obs/`.
+The script builds the frontend, then packs the gptray folder with the built `dist/` into a source tarball. It vendors every crate, including the pinned `gpapi` and `common`, into `vendor.tar.xz`, because OBS builds offline. It ships the matching `src-tauri/.cargo/config.toml` and fills in `gptray.spec` from `packaging/obs/gptray.spec.in`. With `--upload` it also creates or updates the `gptray` package in that OBS project and commits. Leave out `--upload` to only produce the files in `.build/obs/`. It needs nothing outside this folder.
 
 Set up the OBS project to build on top of upstream's, so `globalprotect-openconnect` comes from `home:yuezk`. The live project `home:afonsusousa` uses this repository and project config:
 

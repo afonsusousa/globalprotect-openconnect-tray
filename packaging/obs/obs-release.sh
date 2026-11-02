@@ -3,10 +3,11 @@
 #
 #   obs-release.sh [--out DIR] [--upload home:USER[:SUBPROJECT]]
 #
-# Produces in DIR (default: apps/gptray/.build/obs):
-#   gptray-<version>.tar.gz  trimmed sources: gptray, crates/gpapi, crates/common,
-#                            the prebuilt frontend (dist/) and a minimal root Cargo.toml
-#   vendor.tar.xz            all crates vendored for OBS's offline build
+# Works from a standalone gptray checkout; nothing outside this folder is needed.
+# Produces in DIR (default: .build/obs inside the gptray folder):
+#   gptray-<version>.tar.gz  gptray sources, the prebuilt frontend (dist/) and a
+#                            .cargo/config.toml that points cargo at vendor/
+#   vendor.tar.xz            all crates (incl. the pinned gpapi/common git deps)
 #   gptray.spec              filled in from gptray.spec.in
 #   gptray.changes
 #
@@ -14,7 +15,7 @@
 # files and commits. It uses your own osc credentials (~/.config/osc/oscrc).
 set -euo pipefail
 
-usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 OUT=""
 PROJECT=""
@@ -29,24 +30,21 @@ done
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP="$(cd "$HERE/../.." && pwd)"
-ROOT="$(cd "$APP/../.." && pwd)"
 OUT="${OUT:-$APP/.build/obs}"
 
-manifest_version() { # file section
-  python3 -I - "$1" "$2" <<'EOF'
+read -r VERSION GP_VERSION < <(python3 -I - "$APP/src-tauri/Cargo.toml" <<'EOF'
 import sys, tomllib
-data = tomllib.load(open(sys.argv[1], "rb"))
-for key in sys.argv[2].split("."):
-    data = data[key]
-print(data["version"])
+manifest = tomllib.load(open(sys.argv[1], "rb"))
+tag = manifest["dependencies"]["gpapi"]["tag"]
+assert manifest["dependencies"]["common"]["tag"] == tag, "gpapi and common must use the same tag"
+print(manifest["package"]["version"], tag.removeprefix("v"))
 EOF
-}
-VERSION="$(manifest_version "$APP/src-tauri/Cargo.toml" package)"
-GP_VERSION="$(manifest_version "$ROOT/Cargo.toml" workspace.package)"
+)
 NAME="gptray-$VERSION"
 echo "==> gptray $VERSION (for globalprotect-openconnect $GP_VERSION)"
 
-if [[ -n "$(git -C "$ROOT" status --porcelain -- apps/gptray crates/gpapi crates/common)" ]]; then
+if git -C "$APP" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  && [[ -n "$(git -C "$APP" status --porcelain -- .)" ]]; then
   echo "warning: uncommitted changes are included in the package" >&2
 fi
 
@@ -59,26 +57,23 @@ SRC="$STAGE/$NAME"
 mkdir -p "$SRC"
 
 echo "==> Staging sources"
-# Tracked files only (no target/, node_modules/ or local state), plus the built frontend.
-(cd "$ROOT" && git ls-files -z -- apps/gptray crates/gpapi crates/common | xargs -0 cp --parents -t "$SRC")
-cp -r "$APP/dist" "$SRC/apps/gptray/dist"
-
-# gpapi/common inherit workspace settings; keep a root manifest with just those members,
-# so the tarball doesn't need the rest of the repository (or its git-only patches).
-python3 -I - "$ROOT/Cargo.toml" "$SRC/Cargo.toml" <<'EOF'
-import re, sys
-text = open(sys.argv[1]).read()
-text = re.sub(r"members\s*=\s*\[[^\]]*\]", 'members = ["crates/gpapi", "crates/common"]', text, count=1)
-text = re.sub(r"\n\[patch\.crates-io\].*?(?=\n\[|\Z)", "\n", text, flags=re.S)
-open(sys.argv[2], "w").write(text)
-EOF
+tar -C "$APP" \
+  --exclude=./node_modules --exclude=./.build --exclude=./dist \
+  --exclude=./src-tauri/target --exclude=./src-tauri/gen --exclude=./src-tauri/.cargo \
+  -cf - . | tar -C "$SRC" -xf -
+cp -r "$APP/dist" "$SRC/dist"
 
 echo "==> Vendoring crates (this takes a while)"
-(cd "$SRC/apps/gptray/src-tauri" && cargo vendor --locked --quiet "$STAGE/vendor" >/dev/null)
+# OBS extracts vendor.tar.xz next to src-tauri/, so "../vendor" resolves from there.
+mkdir -p "$SRC/src-tauri/.cargo"
+(cd "$SRC/src-tauri" && cargo vendor --locked ../vendor > .cargo/config.toml 2>/dev/null)
+grep -q "vendored-sources" "$SRC/src-tauri/.cargo/config.toml" || { echo "cargo vendor produced no source config" >&2; exit 1; }
+mv "$SRC/vendor" "$STAGE/vendor"
 
 mkdir -p "$OUT"
 rm -f "$OUT"/gptray-*.tar.gz "$OUT/vendor.tar.xz"
 tar -C "$STAGE" --owner=0 --group=0 --sort=name -czf "$OUT/$NAME.tar.gz" "$NAME"
+# Lay vendor/ out inside the source directory when extracted with %setup -a1.
 XZ_OPT="-T0 -6" tar -C "$STAGE" --owner=0 --group=0 --sort=name -cJf "$OUT/vendor.tar.xz" vendor
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@GP_VERSION@/$GP_VERSION/g" "$HERE/gptray.spec.in" > "$OUT/gptray.spec"
 cp "$HERE/gptray.changes" "$OUT/gptray.changes"

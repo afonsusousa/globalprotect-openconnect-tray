@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Nov  2 22:25:00 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
+
+- Build standalone: gpapi/common now come from the upstream v3.2.0 tag
+  (vendored), instead of the surrounding repository.
+
+-------------------------------------------------------------------
 Mon Nov  2 22:10:00 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
 
 - Without a tray host (stock GNOME), closing the window minimizes it
