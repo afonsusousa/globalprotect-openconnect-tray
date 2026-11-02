@@ -62,8 +62,9 @@ mkdir -p "$OUT"
 rm -f "$OUT"/*.tar.gz "$OUT"/*.tar.xz "$OUT"/*.spec "$OUT"/*.changes
 
 echo "==> Upstream: cloning $GP_TAG with submodules"
-git clone --quiet --depth 1 --branch "$GP_TAG" --recurse-submodules --shallow-submodules \
-  "$UPSTREAM" "$STAGE/upstream" 2>&1 | grep -v "^Note: switching" || true
+git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$GP_TAG" \
+  --recurse-submodules --shallow-submodules "$UPSTREAM" "$STAGE/upstream" 2>&1 \
+  | grep -v "is not a commit" || true
 echo "==> Upstream: make tarball OFFLINE=1 (vendors its crates; this takes a while)"
 make -C "$STAGE/upstream" tarball OFFLINE=1 >/dev/null 2>"$STAGE/upstream-tarball.log" \
   || { cat "$STAGE/upstream-tarball.log" >&2; exit 1; }
@@ -75,10 +76,15 @@ echo "==> Tray: building the frontend"
 echo "==> Tray: staging sources"
 SRC="$STAGE/$NAME"
 mkdir -p "$SRC"
-tar -C "$APP" \
-  --exclude=./.git --exclude=./node_modules --exclude=./.build --exclude=./dist \
-  --exclude=./src-tauri/target --exclude=./src-tauri/gen --exclude=./src-tauri/.cargo \
-  -cf - . | tar -C "$SRC" -xf -
+if git -C "$APP" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  # Exactly the tracked files (working-tree contents), nothing local or generated.
+  (cd "$APP" && git ls-files -z -- . | xargs -0 cp --parents -t "$SRC")
+else
+  tar -C "$APP" \
+    --exclude=./.git --exclude=./.claude --exclude=./node_modules --exclude=./.build --exclude=./dist \
+    --exclude=./target --exclude=./src-tauri/target --exclude=./src-tauri/gen --exclude=./src-tauri/.cargo \
+    -cf - . | tar -C "$SRC" -xf -
+fi
 cp -r "$APP/dist" "$SRC/dist"
 
 echo "==> Tray: vendoring crates"
