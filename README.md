@@ -1,5 +1,11 @@
 # gptray
 
+> [!WARNING]
+> # ⚠️ THIS IS VIBE CODED ⚠️
+> **gptray was written almost entirely by an AI coding assistant (Claude), with minimal human review.**
+> It handles your VPN sign-in credentials and drives a privileged (root) service.
+> It has not been audited. **Use it at your own risk. There is no warranty of any kind.** See [LICENSE](./LICENSE).
+
 A small, free (GPL-3.0) tray app and connection window for GlobalProtect-openconnect on Linux.
 It's an independent front end. It doesn't replace or unlock the proprietary `gpgui`. It drives the open-source `gpservice` and `gpclient`.
 

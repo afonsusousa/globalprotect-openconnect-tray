@@ -2,7 +2,7 @@
 Type=Application
 Name=GlobalProtect (gptray)
 GenericName=VPN Client
-Comment=Connect to GlobalProtect VPNs
+Comment=Connect to GlobalProtect VPNs (VIBE CODED: AI-written, use at your own risk)
 Exec=gptray
 Icon=gptray
 Terminal=false

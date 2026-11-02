@@ -210,6 +210,7 @@ fn main() {
         }),
       };
       let vpn = Arc::new(Vpn::new(hooks));
+      vpn.log("WARN", "VIBE CODED: written almost entirely by an AI coding assistant (Claude) with minimal human review. It handles VPN sign-in credentials and drives a root service. Use at your own risk. No warranty.");
       app.manage(AppState {
         vpn: vpn.clone(),
         profiles: ProfileStore::new(config_dir),

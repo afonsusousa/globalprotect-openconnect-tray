@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "license": "GPL-3.0",
+  "description": "VIBE CODED: AI-written with minimal human review; use at your own risk.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

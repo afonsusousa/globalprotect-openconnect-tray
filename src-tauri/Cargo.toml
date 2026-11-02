@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.91"
 license = "GPL-3.0"
-description = "A free tray GUI for GlobalProtect-openconnect that drives gpclient"
+description = "A free tray GUI for GlobalProtect-openconnect. VIBE CODED: AI-written with minimal human review; use at your own risk."
 
 # Standalone on purpose: keeps this app out of the main workspace and its lockfile.
 [workspace]

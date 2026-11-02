@@ -177,6 +177,7 @@ export default function App() {
                 { label: "Delete connection", onClick: deleteProfile, disabled: !idle || !draft.id, danger: true },
                 { label: "Logs", onClick: () => setView("logs") },
                 { label: "Quit", onClick: () => api.quit() },
+                { label: "⚠️ Vibe coded: use at your own risk", onClick: () => setView("logs"), warning: true },
               ]}
             />
             <button className="icon-btn" onClick={() => setView("logs")} aria-label="Logs" title="Logs">
@@ -331,6 +332,7 @@ interface MenuItem {
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
+  warning?: boolean;
 }
 
 function Menu({ items }: { items: MenuItem[] }) {
@@ -346,7 +348,7 @@ function Menu({ items }: { items: MenuItem[] }) {
           {items.map((item) => (
             <button
               key={item.label}
-              className={item.danger ? "danger-text" : ""}
+              className={item.danger ? "danger-text" : item.warning ? "vibe-item" : ""}
               disabled={item.disabled}
               onClick={() => {
                 setOpen(false);
@@ -641,6 +643,7 @@ function Settings({
       <button className="primary" type="submit" disabled={disabled}>
         Save
       </button>
+      <VibeCoded />
     </form>
   );
 }
@@ -679,6 +682,19 @@ function SignInMemory({ profile, onToggle }: { profile: Profile; onToggle: (on: 
   );
 }
 
+/** Shown wherever there's room: this app was AI-written and not audited. */
+function VibeCoded() {
+  return (
+    <div className="vibe">
+      <strong>⚠️ VIBE CODED</strong>
+      <span>
+        Written almost entirely by an AI (Claude) with minimal human review. It handles VPN credentials and drives a
+        root service. Use at your own risk; no warranty.
+      </span>
+    </div>
+  );
+}
+
 function LogView({ logs, onClear }: { logs: LogLine[]; onClear: () => void }) {
   const ref = useRef<HTMLPreElement>(null);
   useEffect(() => {
@@ -694,6 +710,7 @@ function LogView({ logs, onClear }: { logs: LogLine[]; onClear: () => void }) {
           </div>
         ))}
       </pre>
+      <VibeCoded />
       <button className="pill" onClick={onClear} disabled={logs.length === 0}>
         Clear
       </button>

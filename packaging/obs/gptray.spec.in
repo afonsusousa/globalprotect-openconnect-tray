@@ -7,7 +7,7 @@
 Name:           gptray
 Version:        @VERSION@
 Release:        0
-Summary:        Tray GUI for GlobalProtect-openconnect
+Summary:        Tray GUI for GlobalProtect-openconnect (VIBE CODED, use at your own risk)
 License:        GPL-3.0-only
 Group:          Productivity/Networking/Other
 URL:            https://github.com/afonsusousa/GlobalProtect-openconnect
@@ -38,6 +38,12 @@ Requires:       (libayatana-appindicator3-1 or libappindicator3-1)
 %global debug_package %{nil}
 
 %description
+*** WARNING: THIS IS VIBE CODED ***
+This software was written almost entirely by an AI coding assistant (Claude)
+with minimal human review. It handles VPN sign-in credentials and drives a
+privileged (root) service. It has not been audited. Use it at your own risk;
+there is no warranty of any kind.
+
 gptray is a free (GPL-3.0) tray icon and compact connection window for
 GlobalProtect-openconnect. It drives the open-source gpservice and gpclient:
 gpservice is started through the packaged polkit policy without a password
