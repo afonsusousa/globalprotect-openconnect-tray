@@ -31,7 +31,10 @@ BuildRequires:  pkgconfig(webkit2gtk-4.1)
 BuildRequires:  hicolor-icon-theme
 BuildRequires:  desktop-file-utils
 
-# gpservice only accepts clients built for its exact release.
+# gpservice only accepts clients built for its exact release. The BuildRequires makes
+# OBS report "unresolvable" (instead of publishing a broken package) once upstream
+# (home:yuezk) moves to a release this gptray wasn't built for.
+BuildRequires:  globalprotect-openconnect = @GP_VERSION@
 Requires:       globalprotect-openconnect = @GP_VERSION@
 Requires:       (libayatana-appindicator3-1 or libappindicator3-1)
 

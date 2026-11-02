@@ -59,7 +59,20 @@ apps/gptray/packaging/obs/obs-release.sh --upload home:<your-obs-user>
 
 The script builds the frontend, then packs a trimmed source tarball with `gptray`, `crates/gpapi`, `crates/common`, the built `dist/` and a minimal root `Cargo.toml`. It vendors every crate into `vendor.tar.xz`, because OBS builds offline, and fills in `gptray.spec` from `packaging/obs/gptray.spec.in`. With `--upload` it also creates or updates the `gptray` package in that OBS project and commits. Leave out `--upload` to only produce the files in `apps/gptray/.build/obs/`.
 
-Enable the repositories you want, such as openSUSE Tumbleweed, in the project's settings on build.opensuse.org. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. It requires exactly the matching `globalprotect-openconnect` version, because `gpservice` rejects clients built for another release. Users also need that package, for example from its own OBS project.
+Set up the OBS project to build on top of upstream's, so `globalprotect-openconnect` comes from `home:yuezk`. The live project `home:afonsusousa` uses this repository and project config:
+
+```xml
+<repository name="openSUSE_Tumbleweed">
+  <path project="home:yuezk" repository="openSUSE_Tumbleweed"/>
+  <arch>x86_64</arch>
+  <arch>aarch64</arch>
+</repository>
+```
+```
+Prefer: libayatana-appindicator3-1
+```
+
+Use `osc meta prj` and `osc meta prjconf` to set them. The `Prefer` line resolves upstream's "appindicator or ayatana" dependency for OBS. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. It requires exactly the matching `globalprotect-openconnect` version, because `gpservice` rejects clients built for another release. Users also need that package, for example from its own OBS project.
 
 Before each release, bump `version` in `src-tauri/Cargo.toml` and add an entry to `packaging/obs/gptray.changes`, for example with `osc vc`.
 
