@@ -1,0 +1,44 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1431",
+    "frontendDist": "../dist"
+  },
+  "identifier": "io.github.gptray",
+  "productName": "gptray",
+  "version": "0.1.0",
+  "app": {
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "GlobalProtect",
+        "center": true,
+        "width": 300,
+        "height": 460,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "visible": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": false,
+    "targets": [
+      "deb",
+      "rpm",
+      "appimage"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.png"
+    ]
+  }
+}
