@@ -7,7 +7,8 @@
 # Produces in DIR (default: .build/obs):
 #   globalprotect-openconnect-tray-<version>.tar.gz   the one source tarball:
 #       the tray (tracked files) with its prebuilt frontend (dist/),
-#       vendor/ + src-tauri/.cargo/config.toml   the tray's crates for offline builds,
+#       vendor.tar.xz + src-tauri/.cargo/config.toml   the tray's crates (nested; the
+#           builds unpack it to vendor/) for offline builds,
 #       upstream/globalprotect-openconnect-<gp>.tar.gz
 #           upstream GlobalProtect-openconnect at the tag gpapi is pinned to in
 #           src-tauri/Cargo.toml, from upstream's own `make tarball OFFLINE=1`
@@ -94,6 +95,10 @@ mkdir -p "$SRC/src-tauri/.cargo"
   || { grep -v "^\s*Vendoring" "$STAGE/vendor.log" >&2; exit 1; }
 grep -q "vendored-sources" "$SRC/src-tauri/.cargo/config.toml" \
   || { echo "cargo vendor produced no source config" >&2; exit 1; }
+# Nested, like upstream's: dpkg-source drops files such as Cargo.toml.orig from a
+# plain tree, which breaks cargo's checksums. The builds unpack it before cargo runs.
+XZ_OPT="-T0 -6" tar -C "$SRC" --owner=0 --group=0 --sort=name -cJf "$SRC/vendor.tar.xz" vendor
+rm -rf "$SRC/vendor"
 
 echo "==> Packing"
 tar -C "$STAGE" --owner=0 --group=0 --sort=name -czf "$OUT/$NAME.tar.gz" "$NAME"

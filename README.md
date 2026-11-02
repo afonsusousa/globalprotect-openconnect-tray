@@ -104,7 +104,7 @@ The script produces these files in `.build/obs/` and, with `--upload`, commits t
 
 | File | Contents |
 |---|---|
-| `globalprotect-openconnect-tray-<version>.tar.gz` | The one source tarball for every build: this repository with the built frontend (`dist/`); `vendor/` with the tray's crates, because OBS builds offline; and `upstream/globalprotect-openconnect-<gp>.tar.gz`, upstream at the pinned tag, cloned with submodules and packed by upstream's own `make tarball OFFLINE=1` |
+| `globalprotect-openconnect-tray-<version>.tar.gz` | The one source tarball for every build: this repository with the built frontend (`dist/`); `vendor.tar.xz` with the tray's crates, because OBS builds offline (nested, because Debian's source tools would otherwise drop files such as `Cargo.toml.orig`); and `upstream/globalprotect-openconnect-<gp>.tar.gz`, upstream at the pinned tag, cloned with submodules and packed by upstream's own `make tarball OFFLINE=1` |
 | `globalprotect-openconnect-tray.spec`, `.changes` | RPM, from `packaging/obs/globalprotect-openconnect-tray.spec.in` |
 | `globalprotect-openconnect-tray.dsc`, `debian.*` | Debian/Ubuntu, from `packaging/obs/debian/`. OBS turns `debian.<name>` into `debian/<name>`. The Debian changelog is generated from the newest `.changes` entry |
 
@@ -120,8 +120,11 @@ The OBS project builds on plain Tumbleweed and Ubuntu. Its repositories and proj
 </repository>
 <!-- the same for 26.04 and 26.10 -->
 <repository name="xUbuntu_24.04">
+  <!-- list all four: OBS doesn't follow these repositories' own paths -->
   <path project="Ubuntu:24.04" repository="universe-update"/>
   <path project="Ubuntu:24.04" repository="update"/>
+  <path project="Ubuntu:24.04" repository="universe"/>
+  <path project="Ubuntu:24.04" repository="standard"/>
   <arch>x86_64</arch>
   <arch>aarch64</arch>
 </repository>

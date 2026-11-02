@@ -17,8 +17,10 @@ UPSTREAM_FLAGS := OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0
 	dh $@
 
 override_dh_auto_configure:
-	rm -rf $(UPSTREAM)
+	rm -rf $(UPSTREAM) vendor
 	tar -xzf upstream/$(UPSTREAM).tar.gz
+	# The tray's crates (nested so dpkg-source can't drop files like Cargo.toml.orig)
+	tar -xJf vendor.tar.xz
 
 override_dh_auto_build:
 	cargo --version
@@ -39,7 +41,7 @@ override_dh_auto_install:
 override_dh_auto_test:
 
 override_dh_auto_clean:
-	rm -rf $(UPSTREAM) src-tauri/target
+	rm -rf $(UPSTREAM) vendor src-tauri/target
 
 # Rust binaries are already stripped by the release profile.
 override_dh_dwz:

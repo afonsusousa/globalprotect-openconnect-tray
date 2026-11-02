@@ -16,7 +16,7 @@ License:        GPL-3.0-only AND MIT AND LGPL-2.1-or-later
 Group:          Productivity/Networking/Other
 URL:            https://github.com/afonsusousa/GlobalProtect-openconnect
 # One tarball (shared with the Debian build), made by packaging/obs/obs-release.sh:
-#   the tray with its prebuilt frontend, vendor/ (its crates, for the offline build)
+#   the tray with its prebuilt frontend, vendor.tar.xz (its crates, for the offline build)
 #   and upstream/globalprotect-openconnect-<gp>.tar.gz (upstream at the pinned tag,
 #   from upstream's own `make tarball OFFLINE=1`, incl. submodules and its crates).
 Source0:        %{name}-%{version}.tar.gz
@@ -52,6 +52,7 @@ BuildRequires:  pkgconfig(libsoup-3.0)
 BuildRequires:  pkgconfig(librsvg-2.0)
 BuildRequires:  pkgconfig(webkit2gtk-4.1)
 BuildRequires:  desktop-file-utils
+BuildRequires:  xz
 BuildRequires:  hicolor-icon-theme
 
 Requires:       polkit
@@ -85,6 +86,8 @@ unprivileged through gpclient, and the sign-in is remembered per connection.
 %setup -q
 # Upstream, unpacked into ./globalprotect-openconnect-%{gp_version}/
 tar -xzf upstream/globalprotect-openconnect-%{gp_version}.tar.gz
+# The tray's crates, into ./vendor/ (src-tauri/.cargo/config.toml points there)
+tar -xJf vendor.tar.xz
 
 %build
 # The injected RUSTFLAGS could fail the build

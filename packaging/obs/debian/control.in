@@ -27,6 +27,7 @@ Build-Depends: debhelper-compat (= 13),
   libdbus-1-dev,
   librsvg2-dev,
   desktop-file-utils,
+  xz-utils,
   cargo-@RUST_VERSION@,
   rustc-@RUST_VERSION@
 Standards-Version: 4.6.2
