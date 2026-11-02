@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Mon Nov  2 22:40:00 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
+
+- Rename gptray to globalprotect-openconnect-tray, version 0.2.0
+  (settings move over automatically from the old name).
+- Build the open-source GlobalProtect-openconnect components (gpclient,
+  gpservice, gpauth) from the upstream v3.2.0 source in this package,
+  without the proprietary GUI, so the service and tray always match.
+  Conflicts with upstream's globalprotect-openconnect package.
+
+-------------------------------------------------------------------
 Mon Nov  2 22:25:00 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
 
 - Build standalone: gpapi/common now come from the upstream v3.2.0 tag

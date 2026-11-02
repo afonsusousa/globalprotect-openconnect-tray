@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=GlobalProtect (gptray)
+Name=GlobalProtect Tray
 GenericName=VPN Client
 Comment=Connect to GlobalProtect VPNs (VIBE CODED: AI-written, use at your own risk)
-Exec=gptray
-Icon=gptray
+Exec=globalprotect-openconnect-tray
+Icon=globalprotect-openconnect-tray
 Terminal=false
 Categories=Network;
 Keywords=VPN;GlobalProtect;OpenConnect;

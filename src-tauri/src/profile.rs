@@ -309,7 +309,7 @@ mod tests {
 
   #[test]
   fn sign_in_cache_is_per_profile_and_on_by_default() {
-    let dir = std::env::temp_dir().join(format!("gptray-test-{}", new_id()));
+    let dir = std::env::temp_dir().join(format!("gp-tray-test-{}", new_id()));
     let store = ProfileStore::new(dir.clone());
     // Profiles saved before this option existed (or with the old `cookieCache` key) default to on.
     let old: Profile = serde_json::from_str(r#"{"id":"p1","name":"W","portal":"vpn.example.com","cookieCache":false}"#).unwrap();
@@ -347,7 +347,7 @@ mod tests {
 
   #[test]
   fn store_round_trips() {
-    let dir = std::env::temp_dir().join(format!("gptray-test-{}", new_id()));
+    let dir = std::env::temp_dir().join(format!("gp-tray-test-{}", new_id()));
     let store = ProfileStore::new(dir.clone());
     let saved = store.save(Profile { id: String::new(), ..profile() }).unwrap();
     assert_eq!(saved.len(), 1);

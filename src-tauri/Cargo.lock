@@ -1590,6 +1590,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
 
 [[package]]
+name = "globalprotect-openconnect-tray"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "common",
+ "dbus",
+ "env_logger",
+ "futures-util",
+ "gpapi",
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tokio",
+ "tokio-tungstenite",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "gobject-sys"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1644,27 +1665,6 @@ dependencies = [
  "whoami",
  "x509-cert",
  "xmltree",
- "zeroize",
-]
-
-[[package]]
-name = "gptray"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "common",
- "dbus",
- "env_logger",
- "futures-util",
- "gpapi",
- "log",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tokio",
- "tokio-tungstenite",
- "uuid",
  "zeroize",
 ]
 

@@ -1,6 +1,6 @@
 use std::{env, fs, path::PathBuf};
 
-/// The globalprotect-openconnect release gptray targets, taken from the `tag = "vX.Y.Z"`
+/// The globalprotect-openconnect release this tray targets, taken from the `tag = "vX.Y.Z"`
 /// that pins the gpapi git dependency in Cargo.toml.
 fn gp_version(manifest: &str) -> Option<String> {
   let line = manifest.lines().find(|l| l.trim_start().starts_with("gpapi"))?;

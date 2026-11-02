@@ -224,6 +224,19 @@ fn on_menu(app: &AppHandle, id: &str) {
   }
 }
 
+/// Carry connections and saved sign-ins over from the app's old name (gptray).
+fn migrate_old_config(config_dir: &std::path::Path) {
+  let Some(old) = config_dir.parent().map(|parent| parent.join("io.github.gptray")) else {
+    return;
+  };
+  if !config_dir.exists() && old.is_dir() {
+    match std::fs::rename(&old, config_dir) {
+      Ok(()) => log::info!("Moved settings from {} to {}", old.display(), config_dir.display()),
+      Err(err) => log::warn!("Cannot move settings from {}: {err}", old.display()),
+    }
+  }
+}
+
 fn main() {
   env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
   let start_minimized = std::env::args().any(|a| a == "--minimized");
@@ -231,6 +244,7 @@ fn main() {
   tauri::Builder::default()
     .setup(move |app| {
       let config_dir = app.path().app_config_dir()?;
+      migrate_old_config(&config_dir);
       let status_handle = app.handle().clone();
       let log_handle = app.handle().clone();
       let hooks = Hooks {
@@ -300,5 +314,5 @@ fn main() {
       quit
     ])
     .run(tauri::generate_context!())
-    .expect("error while running gptray");
+    .expect("error while running globalprotect-openconnect-tray");
 }

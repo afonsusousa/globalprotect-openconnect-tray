@@ -6,9 +6,9 @@
     "devUrl": "http://localhost:1431",
     "frontendDist": "../dist"
   },
-  "identifier": "io.github.gptray",
-  "productName": "gptray",
-  "version": "0.1.0",
+  "identifier": "io.github.afonsusousa.globalprotect-openconnect-tray",
+  "productName": "globalprotect-openconnect-tray",
+  "version": "0.2.0",
   "app": {
     "withGlobalTauri": false,
     "security": {

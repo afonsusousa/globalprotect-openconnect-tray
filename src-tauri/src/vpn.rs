@@ -5,7 +5,7 @@
 //!    a password for the active desktop user, exactly as for the official GUI.
 //! 2. The service writes a one-off session credential to our stdout pipe; we use it
 //!    for the Noise-encrypted WebSocket handshake. Closing its stdin (i.e. quitting
-//!    gptray) makes the service disconnect and exit.
+//!    the tray) makes the service disconnect and exit.
 //! 3. Sign-in runs unprivileged: `gpclient connect --cookie-only` does the portal,
 //!    SAML/password and gateway login as the desktop user and prints the cookie.
 //! 4. The cookie is handed to the service in a `Connect` request; it builds the tunnel.
@@ -174,7 +174,7 @@ impl Vpn {
       level: level.to_uppercase(),
       message: message.into(),
     };
-    log::info!(target: "gptray", "{} {}", line.level, line.message);
+    log::info!(target: "tray", "{} {}", line.level, line.message);
     {
       let mut inner = self.inner.lock().unwrap();
       if line.level == "ERROR" && inner.last_error.is_none() {
@@ -274,7 +274,7 @@ impl Vpn {
     };
     ensure!(
       credential.product_version() == env!("GPAPI_VERSION"),
-      "Installed gpservice {} does not match gptray's protocol version {}; rebuild gptray against the installed release",
+      "Installed gpservice {} does not match this tray's protocol version {}; rebuild the tray against the installed release",
       credential.product_version(),
       env!("GPAPI_VERSION")
     );
