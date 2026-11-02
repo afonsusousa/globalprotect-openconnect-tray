@@ -90,7 +90,8 @@ impl Profile {
   /// Arguments for an unprivileged `gpclient` sign-in that prints the gateway cookie.
   /// HIP is not passed here: gpservice submits HIP reports once the tunnel is up.
   /// `sign_in_cache` is this profile's portal cookie file, when sign-in should be remembered.
-  pub fn sign_in_args(&self, sign_in_cache: Option<&Path>) -> Vec<String> {
+  /// `clean` drops the built-in sign-in window's remembered session (after "Delete credentials").
+  pub fn sign_in_args(&self, sign_in_cache: Option<&Path>, clean: bool) -> Vec<String> {
     let mut args: Vec<String> = vec!["--log-format".into(), "json".into()];
     if self.ignore_tls_errors {
       args.push("--ignore-tls-errors".into());
@@ -107,6 +108,7 @@ impl Profile {
     }
 
     match self.auth {
+      AuthMethod::Embedded if clean => args.push("--clean".into()),
       AuthMethod::Embedded => {}
       AuthMethod::Browser => {
         let browser = if self.browser.is_empty() { "auto" } else { &self.browser };
@@ -146,13 +148,29 @@ impl ProfileStore {
     (profile.remember_sign_in && valid).then(|| self.sign_in_dir.join(format!("{}.json", profile.id)))
   }
 
-  /// Drops the saved sign-in so the next connect asks to log in again.
+  /// Deletes the saved sign-in so the next connect asks to log in again, and marks the
+  /// profile so that sign-in also discards the built-in window's remembered session.
   pub fn forget_sign_in(&self, id: &str) -> anyhow::Result<()> {
+    self.remove_sign_in(id)?;
+    fs::create_dir_all(&self.sign_in_dir)?;
+    fs::write(self.sign_in_dir.join(format!("{id}.clean")), b"")?;
+    Ok(())
+  }
+
+  fn remove_sign_in(&self, id: &str) -> anyhow::Result<()> {
     anyhow::ensure!(id.chars().all(|c| c.is_ascii_alphanumeric()), "Invalid profile id");
-    match fs::remove_file(self.sign_in_dir.join(format!("{id}.json"))) {
-      Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(err.into()),
-      _ => Ok(()),
+    for ext in ["json", "clean"] {
+      match fs::remove_file(self.sign_in_dir.join(format!("{id}.{ext}"))) {
+        Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(err.into()),
+        _ => {}
+      }
     }
+    Ok(())
+  }
+
+  /// Consumes the "start clean" mark left by `forget_sign_in`.
+  pub fn take_clean(&self, id: &str) -> bool {
+    id.chars().all(|c| c.is_ascii_alphanumeric()) && fs::remove_file(self.sign_in_dir.join(format!("{id}.clean"))).is_ok()
   }
 
   pub fn has_saved_sign_in(&self, id: &str) -> bool {
@@ -204,7 +222,7 @@ impl ProfileStore {
     let mut profiles = self.load();
     profiles.retain(|p| p.id != id);
     self.write(&profiles)?;
-    let _ = self.forget_sign_in(id);
+    let _ = self.remove_sign_in(id);
     Ok(profiles)
   }
 }
@@ -233,7 +251,7 @@ mod tests {
   #[test]
   fn default_profile_uses_auto_gateway_and_embedded_auth() {
     assert_eq!(
-      profile().sign_in_args(None),
+      profile().sign_in_args(None, false),
       ["--log-format", "json", "connect", "--cookie-only", "--auto-gateway", "--", "vpn.example.com"]
     );
   }
@@ -248,7 +266,7 @@ mod tests {
       ..profile()
     };
     assert_eq!(
-      p.sign_in_args(None),
+      p.sign_in_args(None, false),
       [
         "--log-format",
         "json",
@@ -275,7 +293,7 @@ mod tests {
       ..profile()
     };
     assert_eq!(
-      p.sign_in_args(None),
+      p.sign_in_args(None, false),
       [
         "--log-format",
         "json",
@@ -298,7 +316,7 @@ mod tests {
     assert!(old.remember_sign_in);
     let path = store.sign_in_cache(&old).unwrap();
     assert!(path.ends_with("sign-in/p1.json"));
-    let args = old.sign_in_args(Some(&path));
+    let args = old.sign_in_args(Some(&path), false);
     assert!(args.contains(&format!("--cookie-cache={}", path.display())));
 
     assert!(store.sign_in_cache(&Profile { remember_sign_in: false, ..old.clone() }).is_none());
@@ -310,6 +328,10 @@ mod tests {
     assert!(store.has_saved_sign_in("p1"));
     store.forget_sign_in("p1").unwrap();
     assert!(!store.has_saved_sign_in("p1"));
+    // After deleting credentials, the next embedded sign-in starts clean, once.
+    assert!(old.sign_in_args(None, true).contains(&"--clean".to_string()));
+    assert!(store.take_clean("p1"));
+    assert!(!store.take_clean("p1"));
     let _ = fs::remove_dir_all(dir);
   }
 

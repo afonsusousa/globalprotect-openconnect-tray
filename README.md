@@ -8,7 +8,7 @@ It's an independent front end. It doesn't replace or unlock the proprietary `gpg
 - Uses a compact window: shield status, connection picker, server address with a Portal/Gateway toggle, and Connect/Disconnect.
 - Shows a tray icon (grey/amber/green) with connect and disconnect actions.
 - Saves connections with a gateway choice (blank means automatic), a sign-in method (built-in SAML window, system browser, or username and password), and HIP and TLS options. Ignoring TLS certificate errors is **on by default** for new connections; turn it off in Settings if your portal has a valid certificate.
-- Remembers your sign-in, on by default. After one browser or SAML login, gptray has `gpclient` cache the portal's auth cookie for that connection (`~/.config/io.github.gptray/sign-in/<id>.json`, mode 0600, passed as `--cookie-cache`). Later connects skip the login page until the portal expires the cookie. Use Settings → "Forget saved sign-in" to clear it.
+- Remembers your sign-in, on by default. After one browser or SAML login, gptray has `gpclient` cache the portal's auth cookie for that connection (`~/.config/io.github.gptray/sign-in/<id>.json`, mode 0600, passed as `--cookie-cache`). Later connects skip the login page until the portal expires the cookie. Use **Delete credentials** (in the ⋯ menu or Settings) to clear it. The next sign-in also discards the built-in sign-in window's remembered session (`--clean`), so you have to log in again.
 
 ## How it works (no password prompts)
 

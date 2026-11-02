@@ -460,6 +460,7 @@ impl Vpn {
     profile: Profile,
     password: Option<String>,
     sign_in_cache: Option<PathBuf>,
+    clean: bool,
   ) -> anyhow::Result<()> {
     if !self.status().is_idle() {
       bail!("A connection is already in progress");
@@ -487,7 +488,7 @@ impl Vpn {
     let this = self.clone();
     tokio::spawn(async move {
       let result = this
-        .sign_in_and_connect(&gpclient, &profile, password, sign_in_cache, cancel_rx)
+        .sign_in_and_connect(&gpclient, &profile, password, sign_in_cache, clean, cancel_rx)
         .await;
       let cancelled = this.inner.lock().unwrap().cancel_auth.take().is_none();
       match result {
@@ -518,12 +519,13 @@ impl Vpn {
     profile: &Profile,
     password: Option<Zeroizing<String>>,
     sign_in_cache: Option<PathBuf>,
+    clean: bool,
     cancel: oneshot::Receiver<()>,
   ) -> anyhow::Result<()> {
     if let Some(dir) = sign_in_cache.as_deref().and_then(|p| p.parent()) {
       create_private_dir(dir)?;
     }
-    let args = profile.sign_in_args(sign_in_cache.as_deref());
+    let args = profile.sign_in_args(sign_in_cache.as_deref(), clean);
     self.log("INFO", format!("Signing in: {} {}", gpclient.display(), args.join(" ")));
     let mut child = Command::new(gpclient)
       .args(&args)

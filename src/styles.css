@@ -107,24 +107,38 @@ header h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 16px 12px;
-  gap: 8px;
+  position: relative;
+  padding: 16px 16px 12px;
+  gap: 10px;
   min-height: 0;
   overflow-y: auto;
 }
 .main-view > * {
   flex-shrink: 0;
 }
+/* Room for the extra password field without scrolling. */
+.main-view.compact {
+  gap: 7px;
+  padding-top: 12px;
+}
 
+/* Corner icons float over the top of the view, beside the shield. */
 .toolbar {
-  align-self: stretch;
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
   display: flex;
   justify-content: space-between;
+  pointer-events: none;
+}
+.toolbar > * {
+  pointer-events: auto;
 }
 
 .shield {
-  width: 92px;
-  height: 92px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -266,7 +280,7 @@ select.text-input {
   text-align: center;
   word-break: break-word;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   user-select: text;

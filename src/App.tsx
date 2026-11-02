@@ -87,6 +87,19 @@ export default function App() {
   const idle = status.state === "disconnected" || status.state === "error";
   const now = useNow(status.state === "connected");
 
+  // Whether this connection has saved sign-in cookies; re-checked after each connect attempt.
+  const [hasCredentials, setHasCredentials] = useState(false);
+  useEffect(() => {
+    if (!draft.id) return setHasCredentials(false);
+    api.hasSavedSignIn(draft.id).then(setHasCredentials, () => setHasCredentials(false));
+  }, [draft.id, status.state]);
+
+  const deleteCredentials = () =>
+    run(async () => {
+      await api.forgetSignIn(draft.id);
+      setHasCredentials(false);
+    });
+
   async function run(action: () => Promise<unknown>) {
     setError(null);
     setBusy(true);
@@ -154,12 +167,13 @@ export default function App() {
       </header>
 
       {view === "main" && (
-        <main className="main-view">
+        <main className={`main-view${idle && draft.auth === "password" ? " compact" : ""}`}>
           <div className="toolbar">
             <Menu
               items={[
                 { label: "Connection settings", onClick: () => setView("settings") },
                 { label: "New connection", onClick: () => selectProfile(null), disabled: !idle },
+                { label: "Delete credentials", onClick: deleteCredentials, disabled: !hasCredentials, danger: true },
                 { label: "Delete connection", onClick: deleteProfile, disabled: !idle || !draft.id, danger: true },
                 { label: "Logs", onClick: () => setView("logs") },
                 { label: "Quit", onClick: () => api.quit() },
@@ -172,11 +186,11 @@ export default function App() {
 
           <div className={`shield ${status.state}`}>
             {status.state === "connected" ? (
-              <ShieldCheck size={64} />
+              <ShieldCheck size={58} />
             ) : status.state === "connecting" || status.state === "disconnecting" ? (
-              <ShieldBusy size={64} />
+              <ShieldBusy size={58} />
             ) : (
-              <ShieldAlert size={64} />
+              <ShieldAlert size={58} />
             )}
           </div>
 
@@ -236,11 +250,12 @@ export default function App() {
           )}
 
           {(error || status.state === "error") && (
-            <div className="error-text">{error ?? (status.state === "error" ? status.message : "")}</div>
+            <div className="error-text" title={error ?? (status.state === "error" ? status.message : "")}>
+              {error ?? (status.state === "error" ? status.message : "")}
+            </div>
           )}
 
-          <div className="spacer" />
-          {!error && status.state !== "error" && <StatusPill status={status} now={now} profile={draft} />}
+          {!error && status.state !== "error" && !(idle && draft.auth === "password") && <StatusPill status={status} now={now} profile={draft} />}
         </main>
       )}
 
@@ -657,7 +672,7 @@ function SignInMemory({ profile, onToggle }: { profile: Profile; onToggle: (on: 
           className="link-btn danger-text"
           onClick={() => api.forgetSignIn(profile.id).then(() => setSaved(false))}
         >
-          Forget saved sign-in
+          Delete credentials
         </button>
       )}
     </div>
