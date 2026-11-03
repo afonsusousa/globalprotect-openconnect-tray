@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 3 18:28:35 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
+
+- Add Fedora 43, 44, 45 and Rawhide builds.
+- README: state that only SAML sign-in is supported (made for
+  U.Porto), and list what is not implemented.
+
+-------------------------------------------------------------------
 Tue Nov 3 17:50:08 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
 
 - Update to 0.2.1.

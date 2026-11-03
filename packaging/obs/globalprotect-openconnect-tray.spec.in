@@ -53,15 +53,24 @@ BuildRequires:  pkgconfig(librsvg-2.0)
 BuildRequires:  pkgconfig(webkit2gtk-4.1)
 BuildRequires:  desktop-file-utils
 BuildRequires:  xz
-# The tray's frontend (Vite needs Node.js >= 20.19; nodejs-default has its own
-# version numbers, and on Tumbleweed it is always a current Node.js)
+# The tray's frontend (Vite needs Node.js >= 20.19)
+%if 0%{?suse_version}
+# nodejs-default has its own version numbers; on Tumbleweed it's always a current Node.js
 BuildRequires:  nodejs-default
 BuildRequires:  npm-default
+%else
+BuildRequires:  nodejs >= 20.19
+BuildRequires:  npm
+%endif
 BuildRequires:  hicolor-icon-theme
 
 Requires:       polkit
 Requires:       xdg-utils
+%if 0%{?suse_version}
 Requires:       (libayatana-appindicator3-1 or libappindicator3-1)
+%else
+Requires:       (libayatana-appindicator-gtk3 or libappindicator-gtk3)
+%endif
 # Ships the same gpclient/gpservice/gpauth files as upstream's package.
 Conflicts:      globalprotect-openconnect
 Conflicts:      globalprotect-openconnect-snapshot
