@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: globalprotect-openconnect-tray
-Source: https://github.com/afonsusousa/GlobalProtect-openconnect
+Source: https://github.com/afonsusousa/globalprotect-openconnect-tray
 
 Files: *
 Copyright: 2026 afonsusousa (written almost entirely by an AI coding assistant; VIBE CODED)

@@ -33,7 +33,7 @@ Build-Depends: debhelper-compat (= 13),
   cargo-@RUST_VERSION@,
   rustc-@RUST_VERSION@
 Standards-Version: 4.6.2
-Homepage: https://github.com/afonsusousa/GlobalProtect-openconnect
+Homepage: https://github.com/afonsusousa/globalprotect-openconnect-tray
 
 Package: globalprotect-openconnect-tray
 Architecture: amd64 arm64

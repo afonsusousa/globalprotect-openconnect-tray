@@ -14,7 +14,7 @@ Summary:        GlobalProtect VPN client with a tray GUI (VIBE CODED, use at you
 # gpauth), MIT (gpapi, common and other crates), LGPL-2.1+ (OpenConnect, libxml2 is MIT).
 License:        GPL-3.0-only AND MIT AND LGPL-2.1-or-later
 Group:          Productivity/Networking/Other
-URL:            https://github.com/afonsusousa/GlobalProtect-openconnect
+URL:            https://github.com/afonsusousa/globalprotect-openconnect-tray
 # One tarball (shared with the Debian build), made by packaging/obs/obs-release.sh:
 #   the tray's sources, vendor.tar.xz (its crates), npm-cache.tar.xz (its frontend's
 #   npm packages, for the offline build) and upstream/globalprotect-openconnect-<gp>.tar.gz (upstream at the pinned tag,

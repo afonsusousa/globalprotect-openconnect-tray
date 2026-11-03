@@ -4,7 +4,7 @@ Binary: globalprotect-openconnect-tray
 Architecture: amd64 arm64
 Version: @VERSION@-1
 Maintainer: afonsusousa <afonso.rocha@outlook.com>
-Homepage: https://github.com/afonsusousa/GlobalProtect-openconnect
+Homepage: https://github.com/afonsusousa/globalprotect-openconnect-tray
 Standards-Version: 4.6.2
 Build-Depends: @BUILD_DEPENDS@
 DEBTRANSFORM-TAR: globalprotect-openconnect-tray-@VERSION@.tar.gz
