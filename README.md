@@ -24,12 +24,12 @@ Use one of these:
 
 Then start **GlobalProtect Tray** from your app menu.
 
-## Install (Ubuntu 24.04 LTS, 26.04 LTS, 26.10)
+## Install (Ubuntu 26.04 LTS, 26.10)
 
-The same package is built for Ubuntu on amd64 and arm64. Set `UBUNTU` to your release (`24.04`, `26.04` or `26.10`):
+The same package is built for Ubuntu on amd64 and arm64. Set `UBUNTU` to your release (`26.04` or `26.10`):
 
 ```bash
-UBUNTU=24.04
+UBUNTU=26.04
 echo "deb http://download.opensuse.org/repositories/home:/afonsusousa/xUbuntu_$UBUNTU/ /" \
   | sudo tee /etc/apt/sources.list.d/home_afonsusousa.list
 curl -fsSL "https://download.opensuse.org/repositories/home:afonsusousa/xUbuntu_$UBUNTU/Release.key" \
@@ -37,7 +37,7 @@ curl -fsSL "https://download.opensuse.org/repositories/home:afonsusousa/xUbuntu_
 sudo apt update && sudo apt install globalprotect-openconnect-tray
 ```
 
-The [1-Click page](https://software.opensuse.org/download.html?project=home%3Aafonsusousa&package=globalprotect-openconnect-tray) shows the same commands for each release. Ubuntu's desktop has the AppIndicator extension enabled by default, so the tray icon works out of the box. Other Ubuntu releases aren't built: 25.10 and older interim releases don't ship the Rust 1.91 toolchain this release needs.
+The [1-Click page](https://software.opensuse.org/download.html?project=home%3Aafonsusousa&package=globalprotect-openconnect-tray) shows the same commands for each release. Ubuntu's desktop has the AppIndicator extension enabled by default, so the tray icon works out of the box. Other Ubuntu releases aren't built: 24.04's Node.js is too old to build the frontend, and 25.10 and older interim releases don't ship the Rust 1.91 toolchain this release needs.
 
 ### Notes for both distributions
 
@@ -104,11 +104,11 @@ The script produces these files in `.build/obs/` and, with `--upload`, commits t
 
 | File | Contents |
 |---|---|
-| `globalprotect-openconnect-tray-<version>.tar.gz` | The one source tarball for every build: this repository with the built frontend (`dist/`); `vendor.tar.xz` with the tray's crates, because OBS builds offline (nested, because Debian's source tools would otherwise drop files such as `Cargo.toml.orig`); and `upstream/globalprotect-openconnect-<gp>.tar.gz`, upstream at the pinned tag, cloned with submodules and packed by upstream's own `make tarball OFFLINE=1` |
+| `globalprotect-openconnect-tray-<version>.tar.gz` | The one source tarball for every build: this repository's sources; `vendor.tar.xz` with the tray's crates and `npm-cache.tar.xz` with its frontend's npm packages (an offline npm cache, checked against `package-lock.json`'s hashes), because OBS builds offline (nested, because Debian's source tools would otherwise drop files such as `Cargo.toml.orig`); and `upstream/globalprotect-openconnect-<gp>.tar.gz`, upstream at the pinned tag, cloned with submodules and packed by upstream's own `make tarball OFFLINE=1` |
 | `globalprotect-openconnect-tray.spec`, `.changes` | RPM, from `packaging/obs/globalprotect-openconnect-tray.spec.in` |
 | `globalprotect-openconnect-tray.dsc`, `debian.*` | Debian/Ubuntu, from `packaging/obs/debian/`. OBS turns `debian.<name>` into `debian/<name>`. The Debian changelog is generated from the newest `.changes` entry |
 
-Both builds compile upstream with `make build OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0`, so the proprietary GUI is never downloaded, then build the tray. They install everything upstream's own package installs except the GUI's desktop entry. On Ubuntu, the build uses the versioned `rustc-<X.Y>`/`cargo-<X.Y>` packages that match upstream's `RUST_VERSION`.
+Both builds compile upstream with `make build OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0`, so the proprietary GUI is never downloaded, then build the tray: its frontend with `npm ci --offline` and `npm run build`, then the app with cargo. They install everything upstream's own package installs except the GUI's desktop entry. On Ubuntu, the build uses the versioned `rustc-<X.Y>`/`cargo-<X.Y>` packages that match upstream's `RUST_VERSION`.
 
 The OBS project builds on plain Tumbleweed and Ubuntu. Its repositories and project config:
 
@@ -118,22 +118,22 @@ The OBS project builds on plain Tumbleweed and Ubuntu. Its repositories and proj
   <arch>x86_64</arch>
   <arch>aarch64</arch>
 </repository>
-<!-- the same for 26.04 and 26.10 -->
-<repository name="xUbuntu_24.04">
+<repository name="xUbuntu_26.04">
   <!-- list all four: OBS doesn't follow these repositories' own paths -->
-  <path project="Ubuntu:24.04" repository="universe-update"/>
-  <path project="Ubuntu:24.04" repository="update"/>
-  <path project="Ubuntu:24.04" repository="universe"/>
-  <path project="Ubuntu:24.04" repository="standard"/>
+  <path project="Ubuntu:26.04" repository="universe-update"/>
+  <path project="Ubuntu:26.04" repository="update"/>
+  <path project="Ubuntu:26.04" repository="universe"/>
+  <path project="Ubuntu:26.04" repository="standard"/>
   <arch>x86_64</arch>
   <arch>aarch64</arch>
 </repository>
+<!-- the same for 26.10 -->
 ```
 ```
 Prefer: libayatana-appindicator3-1
 ```
 
-Set them with `osc meta prj` and `osc meta prjconf`. The package needs Rust ≥ 1.91 and WebKitGTK 4.1. Only add an Ubuntu release if it ships `rustc-<upstream RUST_VERSION>`.
+Set them with `osc meta prj` and `osc meta prjconf`. The package needs Rust ≥ 1.91, Node.js ≥ 20.19 and WebKitGTK 4.1. Only add an Ubuntu release if it ships `rustc-<upstream RUST_VERSION>` and a new enough `nodejs`.
 
 Before each release, bump `version` in `src-tauri/Cargo.toml` and add an entry to `packaging/obs/globalprotect-openconnect-tray.changes`, for example with `osc vc`.
 

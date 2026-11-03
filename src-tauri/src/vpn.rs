@@ -120,6 +120,8 @@ struct Inner {
   profile: Option<(String, String)>,
   /// Set while `gpclient --cookie-only` is signing in; sending cancels it.
   cancel_auth: Option<oneshot::Sender<()>>,
+  /// Counts connect attempts, so a finished attempt never touches a newer one's state.
+  attempt: u64,
   /// Channel to the attached service session, once ready.
   service: Option<mpsc::Sender<(WsRequest, Reply)>>,
   service_starting: bool,
@@ -129,6 +131,18 @@ pub struct Vpn {
   inner: Mutex<Inner>,
   hooks: Hooks,
 }
+
+/// A sign-in the user cancelled (as opposed to one that failed).
+#[derive(Debug)]
+struct Cancelled;
+
+impl std::fmt::Display for Cancelled {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str("cancelled")
+  }
+}
+
+impl std::error::Error for Cancelled {}
 
 fn now() -> u64 {
   SystemTime::now()
@@ -222,18 +236,27 @@ impl Vpn {
     let this = self.clone();
     tokio::spawn(async move {
       let result = this.clone().run_service().await;
-      let was_busy = {
+      let (was_busy, signing_in) = {
         let mut inner = this.inner.lock().unwrap();
         inner.service = None;
         inner.service_starting = false;
-        !inner.status.as_ref().is_none_or(Status::is_idle)
+        (
+          !inner.status.as_ref().is_none_or(Status::is_idle),
+          inner.cancel_auth.is_some(),
+        )
       };
       if let Err(err) = result {
-        this.log("ERROR", format!("VPN service stopped: {err:#}"));
-        this.set_status(Status::Error {
-          message: format!("{err:#}"),
-        });
-      } else if was_busy {
+        // A sign-in in progress restarts the service when it needs it, and reports
+        // its own failure; showing an idle error now would re-enable Connect mid-attempt
+        // (and an ERROR line would become that sign-in's error message).
+        let level = if signing_in { "WARN" } else { "ERROR" };
+        this.log(level, format!("VPN service stopped: {err:#}"));
+        if !signing_in {
+          this.set_status(Status::Error {
+            message: format!("{err:#}"),
+          });
+        }
+      } else if was_busy && !signing_in {
         this.set_status(Status::Disconnected);
       }
     });
@@ -445,8 +468,14 @@ impl Vpn {
 
   async fn wait_for_service(&self) -> anyhow::Result<mpsc::Sender<(WsRequest, Reply)>> {
     for _ in 0..80 {
-      if let Some(sender) = self.inner.lock().unwrap().service.clone() {
-        return Ok(sender);
+      {
+        let inner = self.inner.lock().unwrap();
+        if let Some(sender) = inner.service.clone() {
+          return Ok(sender);
+        }
+        if !inner.service_starting {
+          bail!("VPN service is not running; check the log for details");
+        }
       }
       tokio::time::sleep(Duration::from_millis(250)).await;
     }
@@ -460,11 +489,8 @@ impl Vpn {
     profile: Profile,
     password: Option<String>,
     sign_in_cache: Option<PathBuf>,
-    clean: bool,
+    clean_marker: Option<PathBuf>,
   ) -> anyhow::Result<()> {
-    if !self.status().is_idle() {
-      bail!("A connection is already in progress");
-    }
     profile.validate()?;
     let password = password.filter(|p| !p.is_empty()).map(Zeroizing::new);
     if profile.needs_password() && password.is_none() {
@@ -472,28 +498,42 @@ impl Vpn {
     }
     let gpclient = find_gpclient()?;
 
-    self.start_service();
+    // Check and claim in one step, so two quick clicks can't both start a sign-in.
     let (cancel_tx, cancel_rx) = oneshot::channel();
-    {
+    let connecting = Status::Connecting {
+      profile_id: profile.id.clone(),
+      profile_name: profile.name.clone(),
+    };
+    let attempt = {
       let mut inner = self.inner.lock().unwrap();
+      if !inner.status.as_ref().is_none_or(Status::is_idle) || inner.cancel_auth.is_some() {
+        bail!("A connection is already in progress");
+      }
+      inner.attempt += 1;
       inner.last_error = None;
       inner.cancel_auth = Some(cancel_tx);
       inner.profile = Some((profile.id.clone(), profile.name.clone()));
-    }
-    self.set_status(Status::Connecting {
-      profile_id: profile.id.clone(),
-      profile_name: profile.name.clone(),
-    });
+      inner.status = Some(connecting.clone());
+      inner.attempt
+    };
+    (self.hooks.on_status)(&connecting);
+    self.start_service();
 
     let this = self.clone();
     tokio::spawn(async move {
       let result = this
-        .sign_in_and_connect(&gpclient, &profile, password, sign_in_cache, clean, cancel_rx)
+        .sign_in_and_connect(&gpclient, &profile, password, sign_in_cache, clean_marker, cancel_rx)
         .await;
-      let cancelled = this.inner.lock().unwrap().cancel_auth.take().is_none();
+      {
+        let mut inner = this.inner.lock().unwrap();
+        if inner.attempt != attempt {
+          return;
+        }
+        inner.cancel_auth = None;
+      }
       match result {
         Ok(()) => {}
-        Err(_) if cancelled => {
+        Err(err) if err.is::<Cancelled>() => {
           this.log("INFO", "Sign-in cancelled");
           this.set_status(Status::Disconnected);
         }
@@ -519,9 +559,10 @@ impl Vpn {
     profile: &Profile,
     password: Option<Zeroizing<String>>,
     sign_in_cache: Option<PathBuf>,
-    clean: bool,
+    clean_marker: Option<PathBuf>,
     cancel: oneshot::Receiver<()>,
   ) -> anyhow::Result<()> {
+    let clean = clean_marker.is_some();
     if let Some(dir) = sign_in_cache.as_deref().and_then(|p| p.parent()) {
       create_private_dir(dir)?;
     }
@@ -554,7 +595,7 @@ impl Vpn {
       result = async { tokio::join!(read_cookie_output(stdout), child.wait()) } => result,
       _ = cancel => {
         let _ = child.kill().await;
-        bail!("cancelled");
+        return Err(Cancelled.into());
       }
     };
     let status = status?;
@@ -566,16 +607,22 @@ impl Vpn {
       bail!("Sign-in failed (gpclient exited with {status})");
     }
     let (cookie, host) = output.into_parts().context("gpclient did not print a gateway cookie")?;
+    // The fresh sign-in happened, so "Delete credentials" is fully honoured now.
+    if let Some(marker) = clean_marker {
+      let _ = std::fs::remove_file(marker);
+    }
     self.log("INFO", format!("Signed in; connecting to gateway {host}"));
 
     // From here the service owns progress reporting.
     {
       let mut inner = self.inner.lock().unwrap();
       if inner.cancel_auth.take().is_none() {
-        bail!("cancelled");
+        return Err(Cancelled.into());
       }
     }
     let request = build_connect_request(profile, cookie, host)?;
+    // Restarts the service if it stopped while we were signing in.
+    self.start_service();
     self.request(WsRequest::Connect(Box::new(request))).await
   }
 

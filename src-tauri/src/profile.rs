@@ -53,6 +53,11 @@ fn enabled() -> bool {
   true
 }
 
+/// Profile ids name files under `sign-in/`, so only non-empty alphanumerics are allowed.
+fn valid_id(id: &str) -> bool {
+  !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
 /// Values are passed to a privileged process, so refuse anything that could be read as an option.
 fn check_value(field: &str, value: &str, required: bool) -> anyhow::Result<()> {
   if required && value.trim().is_empty() {
@@ -73,7 +78,7 @@ impl Profile {
       bail!("Name is required");
     }
     // The id names this profile's sign-in cache file.
-    if !self.id.chars().all(|c| c.is_ascii_alphanumeric()) {
+    if !valid_id(&self.id) {
       bail!("Invalid profile id");
     }
     check_value("Portal", &self.portal, true)?;
@@ -144,8 +149,7 @@ impl ProfileStore {
 
   /// Where gpclient caches this profile's portal cookie (created by gpclient, mode 0600).
   pub fn sign_in_cache(&self, profile: &Profile) -> Option<PathBuf> {
-    let valid = !profile.id.is_empty() && profile.id.chars().all(|c| c.is_ascii_alphanumeric());
-    (profile.remember_sign_in && valid).then(|| self.sign_in_dir.join(format!("{}.json", profile.id)))
+    (profile.remember_sign_in && valid_id(&profile.id)).then(|| self.sign_in_dir.join(format!("{}.json", profile.id)))
   }
 
   /// Deletes the saved sign-in so the next connect asks to log in again, and marks the
@@ -158,7 +162,7 @@ impl ProfileStore {
   }
 
   fn remove_sign_in(&self, id: &str) -> anyhow::Result<()> {
-    anyhow::ensure!(id.chars().all(|c| c.is_ascii_alphanumeric()), "Invalid profile id");
+    anyhow::ensure!(valid_id(id), "Invalid profile id");
     for ext in ["json", "clean"] {
       match fs::remove_file(self.sign_in_dir.join(format!("{id}.{ext}"))) {
         Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(err.into()),
@@ -168,20 +172,45 @@ impl ProfileStore {
     Ok(())
   }
 
-  /// Consumes the "start clean" mark left by `forget_sign_in`.
-  pub fn take_clean(&self, id: &str) -> bool {
-    id.chars().all(|c| c.is_ascii_alphanumeric()) && fs::remove_file(self.sign_in_dir.join(format!("{id}.clean"))).is_ok()
+  /// The "start clean" mark left by `forget_sign_in`, if set. The sign-in removes it
+  /// only once it succeeds, so a failed attempt doesn't lose it.
+  pub fn clean_marker(&self, id: &str) -> Option<PathBuf> {
+    let path = self.sign_in_dir.join(format!("{id}.clean"));
+    (valid_id(id) && path.is_file()).then_some(path)
   }
 
   pub fn has_saved_sign_in(&self, id: &str) -> bool {
-    id.chars().all(|c| c.is_ascii_alphanumeric()) && self.sign_in_dir.join(format!("{id}.json")).is_file()
+    valid_id(id) && self.sign_in_dir.join(format!("{id}.json")).is_file()
+  }
+
+  fn read(&self) -> anyhow::Result<Vec<Profile>> {
+    match fs::read_to_string(&self.path) {
+      Ok(text) => serde_json::from_str(&text).with_context(|| format!("Cannot parse {}", self.path.display())),
+      Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+      Err(err) => Err(err).with_context(|| format!("Cannot read {}", self.path.display())),
+    }
   }
 
   pub fn load(&self) -> Vec<Profile> {
-    fs::read_to_string(&self.path)
-      .ok()
-      .and_then(|s| serde_json::from_str(&s).ok())
-      .unwrap_or_default()
+    self.read().unwrap_or_else(|err| {
+      log::warn!("{err:#}");
+      Vec::new()
+    })
+  }
+
+  /// The profiles to update. An unreadable file is set aside (not overwritten) first,
+  /// so a bad edit or a newer format never silently loses saved connections.
+  fn load_for_update(&self) -> anyhow::Result<Vec<Profile>> {
+    match self.read() {
+      Ok(profiles) => Ok(profiles),
+      Err(err) if self.path.is_file() => {
+        let backup = self.path.with_extension(format!("json.unreadable-{}", new_id()));
+        fs::rename(&self.path, &backup).with_context(|| format!("{err:#}; cannot move it aside"))?;
+        log::warn!("{err:#}; moved it to {}", backup.display());
+        Ok(Vec::new())
+      }
+      Err(err) => Err(err),
+    }
   }
 
   fn write(&self, profiles: &[Profile]) -> anyhow::Result<()> {
@@ -204,12 +233,12 @@ impl ProfileStore {
     profile.gateway = profile.gateway.trim().to_string();
     profile.browser = profile.browser.trim().to_string();
     profile.username = profile.username.trim().to_string();
-    profile.validate()?;
-
-    let mut profiles = self.load();
     if profile.id.is_empty() {
       profile.id = new_id();
     }
+    profile.validate()?;
+
+    let mut profiles = self.load_for_update()?;
     match profiles.iter_mut().find(|p| p.id == profile.id) {
       Some(existing) => *existing = profile,
       None => profiles.push(profile),
@@ -219,7 +248,7 @@ impl ProfileStore {
   }
 
   pub fn delete(&self, id: &str) -> anyhow::Result<Vec<Profile>> {
-    let mut profiles = self.load();
+    let mut profiles = self.load_for_update()?;
     profiles.retain(|p| p.id != id);
     self.write(&profiles)?;
     let _ = self.remove_sign_in(id);
@@ -330,8 +359,11 @@ mod tests {
     assert!(!store.has_saved_sign_in("p1"));
     // After deleting credentials, the next embedded sign-in starts clean, once.
     assert!(old.sign_in_args(None, true).contains(&"--clean".to_string()));
-    assert!(store.take_clean("p1"));
-    assert!(!store.take_clean("p1"));
+    let marker = store.clean_marker("p1").unwrap();
+    assert!(store.clean_marker("p1").is_some(), "peeking must not consume the mark");
+    fs::remove_file(marker).unwrap();
+    assert!(store.clean_marker("p1").is_none());
+    assert!(store.clean_marker("").is_none());
     let _ = fs::remove_dir_all(dir);
   }
 
@@ -355,6 +387,24 @@ mod tests {
     assert!(!id.is_empty());
     assert_eq!(store.get(&id).unwrap().portal, "vpn.example.com");
     assert!(store.delete(&id).unwrap().is_empty());
+    let _ = fs::remove_dir_all(dir);
+  }
+
+  #[test]
+  fn unreadable_profiles_are_set_aside_not_overwritten() {
+    let dir = std::env::temp_dir().join(format!("gp-tray-test-{}", new_id()));
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("profiles.json"), "not json").unwrap();
+    let store = ProfileStore::new(dir.clone());
+    assert!(store.load().is_empty());
+    store.save(Profile { id: String::new(), ..profile() }).unwrap();
+    let kept: Vec<_> = fs::read_dir(&dir)
+      .unwrap()
+      .filter_map(|e| e.ok())
+      .filter(|e| e.file_name().to_string_lossy().starts_with("profiles.json.unreadable-"))
+      .collect();
+    assert_eq!(kept.len(), 1);
+    assert_eq!(fs::read_to_string(kept[0].path()).unwrap(), "not json");
     let _ = fs::remove_dir_all(dir);
   }
 }

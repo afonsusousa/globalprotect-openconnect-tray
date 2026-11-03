@@ -6,9 +6,11 @@
 #
 # Produces in DIR (default: .build/obs):
 #   globalprotect-openconnect-tray-<version>.tar.gz   the one source tarball:
-#       the tray (tracked files) with its prebuilt frontend (dist/),
+#       the tray (tracked files, sources only: OBS builds the frontend too),
 #       vendor.tar.xz + src-tauri/.cargo/config.toml   the tray's crates (nested; the
 #           builds unpack it to vendor/) for offline builds,
+#       npm-cache.tar.xz   an offline npm cache of the frontend's packages from
+#           package-lock.json (checked against its hashes), for Linux x86_64/aarch64,
 #       upstream/globalprotect-openconnect-<gp>.tar.gz
 #           upstream GlobalProtect-openconnect at the tag gpapi is pinned to in
 #           src-tauri/Cargo.toml, from upstream's own `make tarball OFFLINE=1`
@@ -74,9 +76,6 @@ make -C "$STAGE/upstream" tarball OFFLINE=1 >/dev/null 2>"$STAGE/upstream-tarbal
   || { cat "$STAGE/upstream-tarball.log" >&2; exit 1; }
 mv "$STAGE/upstream/.build/tarball/globalprotect-openconnect-$GP_VERSION.tar.gz" "$SRC/upstream/"
 
-echo "==> Tray: building the frontend"
-(cd "$APP" && npm ci --no-audit --no-fund --loglevel=error >/dev/null && npm run build >/dev/null)
-
 echo "==> Tray: staging sources"
 if in_git; then
   # Exactly the tracked files (working-tree contents), nothing local or generated.
@@ -87,7 +86,32 @@ else
     --exclude=./target --exclude=./src-tauri/target --exclude=./src-tauri/gen --exclude=./src-tauri/.cargo \
     -cf - . | tar -C "$SRC" -xf -
 fi
-cp -r "$APP/dist" "$SRC/dist"
+
+echo "==> Tray: caching the frontend's npm packages"
+# Every package in package-lock.json, in an offline npm cache keyed by the lockfile's
+# integrity hashes. Native packages only for glibc x86_64/aarch64 (what OBS builds);
+# the Tauri CLI's binaries are left out because building the frontend doesn't use them
+# (npm skips optional packages it can't fetch offline).
+python3 -I - "$APP/package-lock.json" > "$STAGE/npm-urls" <<'PY'
+import json, sys
+lock = json.load(open(sys.argv[1]))
+for path, pkg in lock["packages"].items():
+    if not path or "resolved" not in pkg:
+        continue
+    if pkg.get("os") and "linux" not in pkg["os"]:
+        continue
+    if pkg.get("cpu") and not {"x64", "arm64"} & set(pkg["cpu"]):
+        continue
+    if pkg.get("libc") and "glibc" not in pkg["libc"]:
+        continue
+    if path.startswith("node_modules/@tauri-apps/cli-"):
+        continue
+    print(pkg["resolved"])
+PY
+xargs npm cache add --cache "$STAGE/npm-cache" --loglevel=error < "$STAGE/npm-urls" 2>"$STAGE/npm.log" \
+  || { cat "$STAGE/npm.log" >&2; exit 1; }
+rm -rf "$STAGE/npm-cache/_logs"
+XZ_OPT="-T0 -6" tar -C "$STAGE" --owner=0 --group=0 --sort=name -cJf "$SRC/npm-cache.tar.xz" npm-cache
 
 echo "==> Tray: vendoring crates"
 mkdir -p "$SRC/src-tauri/.cargo"

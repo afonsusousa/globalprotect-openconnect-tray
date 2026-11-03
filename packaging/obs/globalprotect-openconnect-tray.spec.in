@@ -16,8 +16,8 @@ License:        GPL-3.0-only AND MIT AND LGPL-2.1-or-later
 Group:          Productivity/Networking/Other
 URL:            https://github.com/afonsusousa/GlobalProtect-openconnect
 # One tarball (shared with the Debian build), made by packaging/obs/obs-release.sh:
-#   the tray with its prebuilt frontend, vendor.tar.xz (its crates, for the offline build)
-#   and upstream/globalprotect-openconnect-<gp>.tar.gz (upstream at the pinned tag,
+#   the tray's sources, vendor.tar.xz (its crates), npm-cache.tar.xz (its frontend's
+#   npm packages, for the offline build) and upstream/globalprotect-openconnect-<gp>.tar.gz (upstream at the pinned tag,
 #   from upstream's own `make tarball OFFLINE=1`, incl. submodules and its crates).
 Source0:        %{name}-%{version}.tar.gz
 
@@ -53,6 +53,9 @@ BuildRequires:  pkgconfig(librsvg-2.0)
 BuildRequires:  pkgconfig(webkit2gtk-4.1)
 BuildRequires:  desktop-file-utils
 BuildRequires:  xz
+# The tray's frontend (Vite needs Node.js >= 20.19)
+BuildRequires:  nodejs-default >= 20.19
+BuildRequires:  npm-default
 BuildRequires:  hicolor-icon-theme
 
 Requires:       polkit
@@ -88,13 +91,18 @@ unprivileged through gpclient, and the sign-in is remembered per connection.
 tar -xzf upstream/globalprotect-openconnect-%{gp_version}.tar.gz
 # The tray's crates, into ./vendor/ (src-tauri/.cargo/config.toml points there)
 tar -xJf vendor.tar.xz
+# The frontend's npm packages, into ./npm-cache/
+tar -xJf npm-cache.tar.xz
 
 %build
 # The injected RUSTFLAGS could fail the build
 unset RUSTFLAGS
 # Upstream: gpclient, gpservice, gpauth (+ helpers). No proprietary GUI, no GUI helper.
 make -C globalprotect-openconnect-%{gp_version} build OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0
-# The tray
+# The tray: frontend (into dist/, offline from the bundled npm cache), then the app
+export npm_config_update_notifier=false
+npm ci --offline --cache "$PWD/npm-cache" --no-audit --no-fund
+npm run build
 cd src-tauri
 cargo build --release --offline --locked
 

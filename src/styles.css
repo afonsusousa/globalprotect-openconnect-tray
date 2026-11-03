@@ -502,29 +502,15 @@ select.text-input {
   text-decoration: underline;
 }
 
-/* "Vibe coded" disclaimer */
-.vibe {
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  border: 1px solid #a16207;
-  border-radius: 6px;
-  background: rgba(245, 158, 11, 0.1);
-  color: #fbbf24;
-  font-size: 11px;
-  line-height: 1.35;
-  text-align: center;
-}
-.vibe strong {
-  font-size: 13px;
-  letter-spacing: 0.04em;
-}
-.popover .vibe-item {
-  color: #fbbf24;
-  font-size: 12px;
+/* "Largely vibe coded" note at the bottom of the ⋯ menu */
+.popover .vibe-note {
+  margin: 4px -4px -4px;
+  padding: 6px 10px;
   border-top: 1px solid var(--border);
-  margin-top: 4px;
-  padding-top: 8px;
+  border-radius: 0 0 7px 7px;
+  background: rgba(245, 158, 11, 0.08);
+  color: rgba(251, 191, 36, 0.8);
+  font-size: 10.5px;
+  text-align: center;
+  white-space: nowrap;
 }

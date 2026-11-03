@@ -176,8 +176,8 @@ export default function App() {
                 { label: "Delete connection", onClick: deleteProfile, disabled: !idle || !draft.id, danger: true },
                 { label: "Logs", onClick: () => setView("logs") },
                 { label: "Quit", onClick: () => api.quit() },
-                { label: "⚠️ Vibe coded: use at your own risk", onClick: () => setView("logs"), warning: true },
               ]}
+              footer={<div className="vibe-note">Largely vibe coded · use at your own risk</div>}
             />
             <button className="icon-btn" onClick={() => setView("logs")} aria-label="Logs" title="Logs">
               <Terminal />
@@ -264,6 +264,7 @@ export default function App() {
           profile={draft}
           disabled={!idle || busy}
           onChange={setDraft}
+          onCredentialsDeleted={() => setHasCredentials(false)}
           onSave={() =>
             run(async () => {
               if (!draft.portal.trim()) throw "Enter a server address";
@@ -331,10 +332,9 @@ interface MenuItem {
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
-  warning?: boolean;
 }
 
-function Menu({ items }: { items: MenuItem[] }) {
+function Menu({ items, footer }: { items: MenuItem[]; footer?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useDismiss(open, () => setOpen(false));
   return (
@@ -347,7 +347,7 @@ function Menu({ items }: { items: MenuItem[] }) {
           {items.map((item) => (
             <button
               key={item.label}
-              className={item.danger ? "danger-text" : item.warning ? "vibe-item" : ""}
+              className={item.danger ? "danger-text" : ""}
               disabled={item.disabled}
               onClick={() => {
                 setOpen(false);
@@ -357,6 +357,7 @@ function Menu({ items }: { items: MenuItem[] }) {
               {item.label}
             </button>
           ))}
+          {footer}
         </div>
       )}
     </div>
@@ -565,12 +566,14 @@ function Settings({
   profile,
   disabled,
   onChange,
+  onCredentialsDeleted,
   onSave,
   error,
 }: {
   profile: Profile;
   disabled: boolean;
   onChange: (p: Profile) => void;
+  onCredentialsDeleted: () => void;
   onSave: () => void;
   error: string | null;
 }) {
@@ -632,7 +635,11 @@ function Settings({
           <input type="checkbox" checked={profile.hip} onChange={(e) => set("hip", e.target.checked)} />
           Send HIP reports
         </label>
-        <SignInMemory profile={profile} onToggle={(on) => set("rememberSignIn", on)} />
+        <SignInMemory
+          profile={profile}
+          onToggle={(on) => set("rememberSignIn", on)}
+          onDeleted={onCredentialsDeleted}
+        />
         <label className="check">
           <input type="checkbox" checked={profile.ignoreTlsErrors} onChange={(e) => set("ignoreTlsErrors", e.target.checked)} />
           Ignore TLS errors (insecure)
@@ -642,13 +649,20 @@ function Settings({
       <button className="primary" type="submit" disabled={disabled}>
         Save
       </button>
-      <VibeCoded />
     </form>
   );
 }
 
 /** "Remember sign-in" toggle, plus a way to drop a saved sign-in. */
-function SignInMemory({ profile, onToggle }: { profile: Profile; onToggle: (on: boolean) => void }) {
+function SignInMemory({
+  profile,
+  onToggle,
+  onDeleted,
+}: {
+  profile: Profile;
+  onToggle: (on: boolean) => void;
+  onDeleted: () => void;
+}) {
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     if (!profile.id) return setSaved(false);
@@ -672,24 +686,16 @@ function SignInMemory({ profile, onToggle }: { profile: Profile; onToggle: (on: 
         <button
           type="button"
           className="link-btn danger-text"
-          onClick={() => api.forgetSignIn(profile.id).then(() => setSaved(false))}
+          onClick={() =>
+            api.forgetSignIn(profile.id).then(() => {
+              setSaved(false);
+              onDeleted();
+            })
+          }
         >
           Delete credentials
         </button>
       )}
-    </div>
-  );
-}
-
-/** Shown wherever there's room: this app was AI-written and not audited. */
-function VibeCoded() {
-  return (
-    <div className="vibe">
-      <strong>⚠️ VIBE CODED</strong>
-      <span>
-        Written almost entirely by an AI (Claude) with minimal human review. It handles VPN credentials and drives a
-        root service. Use at your own risk; no warranty.
-      </span>
     </div>
   );
 }
@@ -709,7 +715,6 @@ function LogView({ logs, onClear }: { logs: LogLine[]; onClear: () => void }) {
           </div>
         ))}
       </pre>
-      <VibeCoded />
       <button className="pill" onClick={onClear} disabled={logs.length === 0}>
         Clear
       </button>

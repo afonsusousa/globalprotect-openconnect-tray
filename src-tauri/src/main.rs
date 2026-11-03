@@ -52,7 +52,7 @@ fn delete_profile(app: AppHandle, state: State<AppState>, id: String) -> CmdResu
 async fn connect(state: State<'_, AppState>, id: String, password: Option<String>) -> CmdResult<()> {
   let profile = state.profiles.get(&id).ok_or("Profile not found")?;
   let cache = state.profiles.sign_in_cache(&profile);
-  let clean = state.profiles.take_clean(&profile.id);
+  let clean = state.profiles.clean_marker(&profile.id);
   state.vpn.clone().connect(profile, password, cache, clean).await.map_err(err)
 }
 
@@ -214,7 +214,7 @@ fn on_menu(app: &AppHandle, id: &str) {
       }
       let vpn = state.vpn.clone();
       let cache = state.profiles.sign_in_cache(&profile);
-      let clean = state.profiles.take_clean(&profile.id);
+      let clean = state.profiles.clean_marker(&profile.id);
       tauri::async_runtime::spawn(async move {
         if let Err(e) = vpn.clone().connect(profile, None, cache, clean).await {
           vpn.log("ERROR", format!("{e:#}"));
@@ -257,7 +257,6 @@ fn main() {
         }),
       };
       let vpn = Arc::new(Vpn::new(hooks));
-      vpn.log("WARN", "VIBE CODED: written almost entirely by an AI coding assistant (Claude) with minimal human review. It handles VPN sign-in credentials and drives a root service. Use at your own risk. No warranty.");
       app.manage(AppState {
         vpn: vpn.clone(),
         profiles: ProfileStore::new(config_dir),

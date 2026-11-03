@@ -28,6 +28,8 @@ Build-Depends: debhelper-compat (= 13),
   librsvg2-dev,
   desktop-file-utils,
   xz-utils,
+  nodejs (>= 20.19),
+  npm,
   cargo-@RUST_VERSION@,
   rustc-@RUST_VERSION@
 Standards-Version: 4.6.2

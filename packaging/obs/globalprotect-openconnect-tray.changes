@@ -1,4 +1,19 @@
 -------------------------------------------------------------------
+Tue Nov 3 17:50:08 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
+
+- Update to 0.2.1.
+- Build the frontend on OBS too, from an offline npm cache of
+  package-lock.json; the source tarball no longer has a prebuilt dist/.
+- Drop Ubuntu 24.04: its Node.js is too old for the frontend build.
+- Fix overlapping connect attempts, a service failure during sign-in
+  re-enabling Connect, and a rejected connection showing "cancelled".
+- Keep an unreadable profiles.json (set it aside) instead of
+  overwriting it with an empty list.
+- "Delete credentials" now lasts until a fresh sign-in succeeds.
+- Tone the AI disclaimer down to a small "largely vibe coded" note
+  in the window's menu.
+
+-------------------------------------------------------------------
 Mon Nov  2 23:10:00 UTC 2026 - afonsusousa <afonso.rocha@outlook.com>
 
 - Add Ubuntu 24.04 LTS, 26.04 LTS and 26.10 builds (Debian

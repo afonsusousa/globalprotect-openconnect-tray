@@ -3,6 +3,7 @@
 # from the combined source tarball made by packaging/obs/obs-release.sh.
 
 export DH_VERBOSE = 1
+export npm_config_update_notifier = false
 # Ubuntu's versioned Rust toolchain (cargo-@RUST_VERSION@ / rustc-@RUST_VERSION@)
 export PATH := /usr/lib/rust-@RUST_VERSION@/bin:$(PATH)
 # The injected RUSTFLAGS could fail the build
@@ -21,10 +22,16 @@ override_dh_auto_configure:
 	tar -xzf upstream/$(UPSTREAM).tar.gz
 	# The tray's crates (nested so dpkg-source can't drop files like Cargo.toml.orig)
 	tar -xJf vendor.tar.xz
+	# The frontend's npm packages (an offline cache)
+	rm -rf npm-cache node_modules dist
+	tar -xJf npm-cache.tar.xz
 
 override_dh_auto_build:
 	cargo --version
 	$(MAKE) -C $(UPSTREAM) build $(UPSTREAM_FLAGS)
+	node --version
+	npm ci --offline --cache $(CURDIR)/npm-cache --no-audit --no-fund
+	npm run build
 	cd src-tauri && cargo build --release --offline --locked
 
 override_dh_auto_install:
@@ -41,7 +48,7 @@ override_dh_auto_install:
 override_dh_auto_test:
 
 override_dh_auto_clean:
-	rm -rf $(UPSTREAM) vendor src-tauri/target
+	rm -rf $(UPSTREAM) vendor npm-cache node_modules dist src-tauri/target
 
 # Rust binaries are already stripped by the release profile.
 override_dh_dwz:
