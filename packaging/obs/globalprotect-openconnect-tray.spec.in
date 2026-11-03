@@ -111,6 +111,15 @@ unset RUSTFLAGS
 make -C globalprotect-openconnect-%{gp_version} build OFFLINE=1 INCLUDE_GUI=0 BUILD_GUI_HELPER=0
 # The tray: frontend (into dist/, offline from the bundled npm cache), then the app
 export npm_config_update_notifier=false
+# Fedora's versioned Node.js packages (e.g. nodejs22 on Fedora 44) may install only
+# node-22/npm-22; the unversioned names are in an optional -bin subpackage.
+if ! command -v npm >/dev/null || ! command -v node >/dev/null; then
+  mkdir -p .node-bin
+  ln -sf "$(ls -d %{_bindir}/node-[0-9]* | sort -V | tail -1)" .node-bin/node
+  ln -sf "$(ls -d %{_bindir}/npm-[0-9]* | sort -V | tail -1)" .node-bin/npm
+  export PATH="$PWD/.node-bin:$PATH"
+fi
+node --version
 npm ci --offline --cache "$PWD/npm-cache" --no-audit --no-fund
 npm run build
 cd src-tauri
